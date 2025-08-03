@@ -29,6 +29,26 @@ from skysub import SEx_SkySubtract
 ##########################################################################################################################################
 
 def cross_conv(maindir, ref_name, sci_name, conv_ref, conv_sci, skysub, logger):
+    """Cross-convolve the REF and SCI images with each other's PSFs. Output files are stored in maindir/output/.
+
+    Arguments:
+    ----------
+    maindir : str
+        The main directory for the NEXUS Variability Pipeline.
+    ref_name : str
+        The name of the reference image.
+    sci_name : str
+        The name of the science image.
+    conv_ref : bool
+        Whether to convolve the reference image with the science PSF.
+    conv_sci : bool
+        Whether to convolve the science image with the reference PSF.
+    skysub : bool
+        Whether the input images are sky-subtracted.
+    logger : logging.Logger
+        Logger object for logging messages.
+    """
+    
     indir = maindir + 'input/'
     psfdir = maindir + 'psf/'
     outdir = maindir + 'output/'
@@ -117,7 +137,25 @@ def cross_conv(maindir, ref_name, sci_name, conv_ref, conv_sci, skysub, logger):
 ##########################################################################################################################################
 
 def subtract_sky(maindir, ref_name, sci_name, logger, mask_type='sextractor'):    
+    """ Subtract a constant sky value from the REF and SCI images using either SExtractor or NoiseChisel. 
+    The constant value is obtained from the background pixels in either image.
     
+    Arguments:
+    ----------
+    maindir : str
+        The main directory for the NEXUS Variability Pipeline.
+    ref_name : str
+        The name of the reference image.
+    sci_name : str
+        The name of the science image.
+    logger : logging.Logger
+        Logger object for logging messages.
+    mask_type : str, optional
+        The method used to obtain the mask for sky subtraction. Either 'sextractor' or 'noisechisel'. Default is 'sextractor'.
+    
+    """
+
+
     indir = maindir + '/input/'
     outdir = maindir + '/input/'
 
