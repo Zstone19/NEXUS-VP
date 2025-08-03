@@ -27,6 +27,28 @@ from multi_proc import Multi_Proc
 
 
 def mask_images(maindir, ref_name, sci_name, logger, skysub=False, conv_ref=False, conv_sci=False):
+    """Mask cross-convolved (or not) REF and SCI images using the SFFT mask. Masked images are stored in maindir/output/.
+
+    Arguments:
+    -----------
+    maindir : str
+        Main directory for the NEXUS Variability Pipeline.
+    ref_name : str
+        Name of the reference image.
+    sci_name : str
+        Name of the science image.
+    logger : logging.Logger
+        Logger for logging messages.
+    skysub : bool, optional
+        Whether the images are sky-subtracted. Default is False.
+    conv_ref : bool, optional
+        Whether the reference image is cross-convolved. Default is False.
+    conv_sci : bool, optional
+        Whether the science image is cross-convolved. Default is False.
+    
+    """
+    
+    
     indir = maindir + 'input/'
     outdir = maindir + 'output/'
     maskdir = maindir + 'mask/'
@@ -115,6 +137,72 @@ def run_sfft_bspline(maindir, ref_name, sci_name, logger, channel='SW', force_co
                      regularize_kernel=True, ignore_laplacian_kercent=True, xy_regularize_fname='', lambda_regularize=3e-5,                     
                      max_threads_per_block=8, minimize_memory_usage=False, ncpu=8, use_gpu=False, ngpu=1,
                      skysub=False, conv_ref=False, conv_sci=False):
+    
+    """Run the SFFT difference imaging algorithm on the REF and SCI images. The results are stored in maindir/output/.
+
+    Arguments:
+    -----------
+    maindir : str
+        Main directory for the NEXUS Variability Pipeline.
+    ref_name : str
+        Name of the reference image.
+    sci_name : str
+        Name of the science image.
+    logger : logging.Logger
+        Logger for logging messages.
+    channel : str, optional
+        Channel of the images (e.g., 'SW', 'LW', 'euclid'). Default is 'SW'.
+    force_conv : str, optional
+        The same as the FORCE_CONV parameter in the SFFT algorithm. Can be either 'REF' or 'SCI'. If 'REF', the 
+        REF image is matched to the SCI image. If 'SCI', the SCI image is matched to the REF image. Default is 'REF'.
+    gkerhw : int, optional
+        The half-width of the Gaussian kernel used in the SFFT algorithm. Default is 11.
+    kernel_type : str, optional
+        The type of spatial variation for the matching kernel across the image. Can be 'B-Spline' or 'Polynomial'. Default is 'B-Spline'.
+    kernel_deg : int, optional
+        The degree of the B-Spline or Polynomial used for the matching kernel variation. Default is 2.
+    nknot_x : int, optional
+        The number of knots along the X-axis for the B-Spline kernel. Default is 3.
+    nknot_y : int, optional
+        The number of knots along the Y-axis for the B-Spline kernel. Default is 3.
+    separate_scaling : bool, optional
+        Whether or not the photometric scaling variations are modeled separately from the matching kernel. Default is True. If the ype of variation
+        is the same for both the matching kernel and photometric scaling, and kernel_deg <= scaling deg, then this will be set to False.
+    scaling_type : str, optional
+        The type of spatial variation for the photometric scaling across the image. Can be 'B-Spline' or 'Polynomial'. Default is 'Polynomial'.
+    scaling_deg : int, optional
+        The degree of the B-Spline or Polynomial used for the photometric scaling variation. Default is 2.
+    bkg_type : str, optional
+        The type of spatial variation for the differential background across the image. Can be 'B-Spline' or 'Polynomial'. Default is 'Polynomial'.
+    bkg_deg : int, optional
+        The degree of the B-Spline or Polynomial used for the differential background variation. Default is 0 (constant background).
+    regularize_kernel : bool, optional
+        Whether to apply Tikhonov regularization to the matching kernel. Default is True.
+    ignore_laplacian_kercent : bool, optional
+        Whether to ignore the Laplacian kernel percent when regularizing the matching kernel. Default is True.
+    xy_regularize_fname : str, optional
+        Path to a file containing random image coordinates for regularization. If empty, random coordinates will be generated. Default is ''.
+    lambda_regularize : float, optional
+        The strength of the Tikhonov regularization applied to the matching kernel. Default is 3e-5.
+    max_threads_per_block : int, optional
+        Maximum number of threads per block for GPU processing. Default is 8.
+    minimize_memory_usage : bool, optional
+        Whether to minimize GPU memory usage during processing. Default is False.
+    ncpu : int, optional
+        Number of CPU threads to use for processing. Default is 8.
+    use_gpu : bool, optional
+        Whether to use GPU for processing. If False, CPU will be used. Default is False.
+    ngpu : int, optional
+        Number of GPUs to use for processing. Default is 1.
+    skysub : bool, optional
+        Whether the images are sky-subtracted. Default is False.
+    conv_ref : bool, optional
+        Whether the reference image is cross-convolved. Default is False.
+    conv_sci : bool, optional
+        Whether the science image is cross-convolved. Default is False.
+
+    """
+    
     
     if use_gpu:
         from BSplineSFFT_cupy import BSpline_Packet
@@ -373,6 +461,37 @@ def MultiConvolveNoise_GPU(PixA_Noise, ConvKerSeq, KerNormalizeSeq,
     
 
 def decorrelate_noise_get_snr(maindir, ref_name, sci_name, conv_ref, conv_sci, skysub, logger, tilesize_ratio=1, nsamp=1024, ncpu=8, use_gpu=False):
+    
+    """Decorrelate the raw difference image and calculate the differential SNR map. The results are stored in maindir/output/.
+
+    Arguments:
+    -----------
+    maindir : str
+        Main directory for the NEXUS Variability Pipeline.
+    ref_name : str
+        Name of the reference image.
+    sci_name : str
+        Name of the science image.
+    conv_ref : bool
+        Whether the reference image is cross-convolved.
+    conv_sci : bool
+        Whether the science image is cross-convolved.
+    skysub : bool
+        Whether the images are sky-subtracted.
+    logger : logging.Logger
+        Logger for logging messages.
+    tilesize_ratio : int, optional
+        Ratio for the size of the tiles used in decorrelation to GKerHW. Default is 1.
+    nsamp : int, optional
+        Number of samples for the Monte Carlo noise propagation in calculating the SNR map. Default is 1024.
+    ncpu : int, optional
+        Number of CPU threads to use for processing. Default is 8.
+    use_gpu : bool, optional
+        Whether to use GPU for processing. If False, CPU will be used. Default is False
+
+    """
+    
+    
     
     # import pyfftw    
     # pyfftw.interfaces.cache.enable()
@@ -782,6 +901,26 @@ def get_snr_stats(dcd_snr):
 
 
 def get_statistics(maindir, ref_name, sci_name, skysub, logger, npx_boundary=30):
+    """Get statistics of the differential SNR map. Outputs are printed to files in maindir/output/.
+
+    Arguments:
+    -----------
+    maindir : str
+        Main directory for the NEXUS Variability Pipeline.
+    ref_name : str
+        Name of the reference image.
+    sci_name : str
+        Name of the science image.
+    skysub : bool
+        Whether the images are sky-subtracted.
+    logger : logging.Logger
+        Logger for logging messages.
+    npx_boundary : int, optional
+        Number of pixels to exclude from the boundary of the image when calculating statistics. Default is 30.
+    
+    """
+    
+    
     from sfft.utils.pyAstroMatic.PYSEx import PY_SEx
     
     indir = maindir + 'input/'
