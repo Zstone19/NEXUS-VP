@@ -13,6 +13,38 @@ import astropy.units as u
 
 
 def remove_empty_space(x1_vals, x2_vals, y1_vals, y2_vals, im_mref, im_msci):
+    """Remove empty space from the cutouts. Will shrink each cutout to the smallest rectangle that contains all non-zero pixels in both images.
+
+    Arguments:
+    ----------
+    x1_vals : list
+        List of x-coordinates for the left sides of the cutouts.
+    x2_vals : list
+        List of x-coordinates for the right sides of the cutouts.
+    y1_vals : list
+        List of y-coordinates for the bottoms of the cutouts.
+    y2_vals : list
+        List of y-coordinates for the tops of the cutouts.
+    im_mref : np.ndarray
+        The reference image.
+    im_msci : np.ndarray
+        The science image.
+
+    Returns:
+    --------
+    x1_new : np.ndarray
+        The new x-coordinates for the left sides of the cutouts.
+    x2_new : np.ndarray
+        The new x-coordinates for the right sides of the cutouts.
+    y1_new : np.ndarray
+        The new y-coordinates for the bottoms of the cutouts.
+    y2_new : np.ndarray
+        The new y-coordinates for the tops of the cutouts.
+    n_nz_new : np.ndarray
+        The number of non-zero pixels in each new cutout.
+
+    """
+    
 
     N0, N1 = im_mref.shape
 
@@ -1028,6 +1060,41 @@ def make_split_subdir_together(npx_side, maindir, ref_name, sci_name, npx_bounda
 def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_boundary=30, 
                                subset=None, dither=None, pp_separate=False,
                                skysub=True, conv_ref=False, conv_sci=False):    
+    
+    """Split the input REF and SCI images into cutouts of size npx_side x npx_side. This is performed before making the SFFT mask.
+    The cutouts are saved in separate subdirectories for each cutout, and the cutout information is saved in a text file. The cutouts 
+    are also split according to GKerHW, so that the cutouts overlap by GKerHW pixels. This makes it so that even after SFFT is performed
+    and the decorrelated images are masked, the full image is still covered by the cutouts.
+    
+    Arguments:
+    ----------
+    npx_side : int
+        The size of the cutouts in pixels.
+    maindir : str
+        The main directory for the NEXUS Variability Pipeline.
+    ref_name : str
+        The name of the reference image.
+    sci_name : str
+        The name of the science image.
+    npx_boundary : int, optional
+        The number of pixels to overlap the cutouts by. This will usually be GKerHW. Default is 30.
+    subset : list, optional
+        A list of cutout indices to process. If None, all cutouts are processed.
+    dither : str, optional
+        Whether to dither the cutouts in RA, DEC, or both. Options are 'ra', 'dec', 'both', or None.
+        Default is None, which means no dithering.
+    pp_separate : bool, optional
+        Whether the preprocessing is performed before the cutouts are made or not. If True, the preprocessing is performed
+        before the cutouts are made, and the cutouts are made from the preprocessed images.
+        Default is False, which means the preprocessing is performed after the cutouts are made.
+    skysub : bool, optional
+        Whether sky subtraction was performed on the input images. Default is True.
+    conv_ref : bool, optional
+        Whether the reference image was cross-convolved. Default is False.
+    conv_sci : bool, optional
+        Whether the science image was cross-convolved. Default is False.
+    
+    """
 
     #Need to take into account that gkerhw pixels from the edge of the image are masked
     #So overlap the cutouts by gkerhw pixels        
