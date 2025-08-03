@@ -1,4 +1,4 @@
-# NEXUS-VP
+# The NEXUS Variability Pipeline (NVP)
 
 The NEXUS Variability Pipeline (NVP) is designed to obtain difference images from NEXUS mosaics, identify sources of variability, and extract said variability reliably. NVP utilizes difference images obtained via direct subtraction (due to the high quality and pointing of the images from JWST) and more complex difference imaging techniques such as SFFT and ZOGY.
 
