@@ -166,9 +166,11 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
      - Have a value < 3*stddev of the background in either one of the cross-convolved images OR
      - Have a difference in MAG_AUTO > 1 between the reference and science images
      
+     The mask will also reject pixels contained in saturated stars or other saturated sources.
+     
     
     
-    Parameters:
+    Arguments:
     ----------
     maindir : str
         The main directory for the sfft section of the NEXUS Variability Pipeline
@@ -178,12 +180,30 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         The name of the reference image
     sci_name : str
         The name of the science image
-    filtername : str
-        The name of the filter used for the images
+    filtername_ref : str
+        The name of the filter used for the REF image
+    filtername_sci : str
+        The name of the filter used for the SCI image
+    filtername_grid : str
+        The name of the filter used for the grid in both images
+    skysub : bool
+        Whether the input images have been sky-subtracted
+    conv_ref : bool
+        Whether the reference image has been cross-convolved
+    conv_sci : bool
+        Whether the science image has been cross-convolved
     logger : logging.Logger
         The logger to use for logging
+    saturation_ref : float
+        The saturation value for the reference image. Default is 0.01.
+    saturation_sci : float
+        The saturation value for the science image. Default is 0.01.
+    bkgstd_ref_global : float
+        The global background standard deviation for the reference image. Default is np.inf.
+    bkgstd_sci_global : float
+        The global background standard deviation for the science image. Default is np.inf.
     ncpu : int
-        The number of CPUs to use for SExtractor
+        The number of CPUs to use for SExtractor. Default is 1.
     
     
     Returns:
