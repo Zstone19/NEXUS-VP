@@ -498,9 +498,9 @@ def decorrelate_noise_get_snr(maindir, ref_name, sci_name, conv_ref, conv_sci, s
     # pyfftw.interfaces.cache.set_keepalive_time(10)
     
     if use_gpu:
-        # from BSplineSFFT_cupy import BSpline_DeCorrelation
+        from BSplineSFFT_cupy import BSpline_DeCorrelation
         import cupy as cp
-        from PureCupyDeCorrelationCalculator import PureCupy_DeCorrelation_Calculator
+        # from PureCupyDeCorrelationCalculator import PureCupy_DeCorrelation_Calculator
         
         from BSplineSFFT_cupy import BSpline_MatchingKernel, BSpline_GridConvolve
     else:
@@ -644,21 +644,21 @@ def decorrelate_noise_get_snr(maindir, ref_name, sci_name, conv_ref, conv_sci, s
         MKer = MKerStack[idx]
         
         
-        if use_gpu:
-            MKer_gpu = cp.array(MKer.astype(np.float32))
-            DCKer = PureCupy_DeCorrelation_Calculator.PCDC(NX_IMG=N0, NY_IMG=N1,
-                                                           KERNEL_GPU_JQueue=[im_jlst_gpu], BKGSIG_JQueue=[bkgsig_lsci],
-                                                           KERNEL_GPU_ILst=[im_ilst_gpu], BKGSIG_IQueue=[bkgsig_lref],
-                                                           MATCH_KERNEL_GPU=MKer_gpu, 
-                                                           REAL_OUTPUT=False, REAL_OUTPUT_SIZE=(nside,nside),
-                                                           NORMALIZE_OUTPUT=True, VERBOSE_LEVEL=0)
-            DCKer = cp.asnumpy(DCKer)
+        # if use_gpu:
+        #     MKer_gpu = cp.array(MKer.astype(np.float32))
+        #     DCKer = PureCupy_DeCorrelation_Calculator.PCDC(NX_IMG=N0, NY_IMG=N1,
+        #                                                    KERNEL_GPU_JQueue=[im_jlst_gpu], BKGSIG_JQueue=[bkgsig_lsci],
+        #                                                    KERNEL_GPU_ILst=[im_ilst_gpu], BKGSIG_IQueue=[bkgsig_lref],
+        #                                                    MATCH_KERNEL_GPU=MKer_gpu, 
+        #                                                    REAL_OUTPUT=False, REAL_OUTPUT_SIZE=(nside,nside),
+        #                                                    NORMALIZE_OUTPUT=True, VERBOSE_LEVEL=0)
+        #     DCKer = cp.asnumpy(DCKer)
 
-        else:
-            DCKer = BSpline_DeCorrelation.BDC(MK_JLst=[im_jlst], SkySig_JLst=[bkgsig_lsci],
-                                            MK_ILst=[im_ilst], SkySig_ILst=[bkgsig_lref],
-                                            MK_Fin=MKer, KERatio=2., DENO_CLIP_RATIO=100000.,  
-                                            VERBOSE_LEVEL=0)
+        # else:
+        DCKer = BSpline_DeCorrelation.BDC(MK_JLst=[im_jlst], SkySig_JLst=[bkgsig_lsci],
+                                        MK_ILst=[im_ilst], SkySig_ILst=[bkgsig_lref],
+                                        MK_Fin=MKer, KERatio=2., DENO_CLIP_RATIO=100000.,  
+                                        VERBOSE_LEVEL=0)
         return DCKer
 
     nside = im_psf_lref.shape[0] *2 + 1
