@@ -664,16 +664,16 @@ def decorrelate_noise_get_snr(maindir, ref_name, sci_name, conv_ref, conv_sci, s
     nside = im_psf_lref.shape[0] *2 + 1
 
     #Run decorr in parallel
-    with WorkerPool(n_jobs=ncpu) as pool:
-        dckerstack = pool.map(func_decorr, range(NTILE), progress_bar=True, progress_bar_style='rich')
+    # with WorkerPool(n_jobs=ncpu) as pool:
+    #     dckerstack = pool.map(func_decorr, range(NTILE), progress_bar=True, progress_bar_style='rich')
         
-    DCKerStack = dckerstack.reshape((NTILE, nside, nside))
-    del dckerstack         
+    # DCKerStack = dckerstack.reshape((NTILE, nside, nside))
+    # del dckerstack         
 
 
-    # taskid_lst = np.arange(NTILE)
-    # mp_dict = Multi_Proc.MP(taskid_lst=taskid_lst, func=func_decorr, nproc=ncpu, mode='mp')
-    # DCKerStack = np.array([ mp_dict[i] for i in taskid_lst ])
+    taskid_lst = np.arange(NTILE)
+    mp_dict = Multi_Proc.MP(taskid_lst=taskid_lst, func=func_decorr, nproc=ncpu, mode='mp')
+    DCKerStack = np.array([ mp_dict[i] for i in taskid_lst ])
         
     # DCKerFStack = np.array([ np.append([ XY_TiC[i,0], XY_TiC[i,1] ], DCKerStack[i].flatten()) for i in range(NTILE) ])
                                 #Each row is x, y + flatten matching kernel
