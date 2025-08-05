@@ -535,8 +535,8 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         # bad_mask_r = ( ( ( (catdat_ref['CLASS_STAR'] > .95) & (catdat_ref['FLUX_APER'] > 6) & (catdat_ref['ELONGATION'] < 1.3) ) | (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 35) ) )
         # bad_mask_s = ( ( ( (catdat_sci['CLASS_STAR'] > .95) & (catdat_sci['FLUX_APER'] > 6) & (catdat_sci['ELONGATION'] < 1.3) ) | (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 35) ) )
         
-        bad_mask_r = ( ( ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) ) | (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 30) ) )
-        bad_mask_s = ( ( ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) ) | (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 30) ) )
+        bad_mask_r = ( ( ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) ) | (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 45) ) )
+        bad_mask_s = ( ( ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) ) | (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 45) ) )
 
 
     if filtername_ref in LW.keys():
