@@ -11,7 +11,7 @@ import glob
 import shutil
 import os
 
-mdir = '/home/stone28/projects/WebbDiffImg/pipeline/src/'
+mdir = '/home/stone28/projects/WebbDiffImg/NEXUS-VP/src/'
 
 import sys
 sys.path.append(mdir + 'psf/')
