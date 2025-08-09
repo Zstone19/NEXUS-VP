@@ -473,65 +473,65 @@ Saturation SCI: {:.2e}
         bkgstd_sci_global = np.inf    
     else:
         
-        # #Check if all masks are made already
-        # mask_exist = np.zeros(ncutout, dtype=bool)
-        # for i in range(ncutout):
-        #     cutout_name = cutout_names[i]
-        #     maindir_i = maindir + 'output_{}/'.format(cutout_name)
+        #Check if all masks are made already
+        mask_exist = np.zeros(ncutout, dtype=bool)
+        for i in range(ncutout):
+            cutout_name = cutout_names[i]
+            maindir_i = maindir + 'output_{}/'.format(cutout_name)
             
 
-        #     fname = maindir_i + 'mask/{}.mask4sfft.fits'.format(ref_name)                
-        #     if os.path.exists(fname):
-        #         mask_exist[i] = True
+            fname = maindir_i + 'mask/{}.mask4sfft.fits'.format(ref_name)                
+            if os.path.exists(fname):
+                mask_exist[i] = True
                 
-        # if np.sum(~mask_exist) > 0:        
-        #     _, logger = setup_logger('NVP.sfft.makemask', logfile)
-        #     logger.info('Getting global background stddev in cross-convolved images')
+        if np.sum(~mask_exist) > 0:        
+            _, logger = setup_logger('NVP.sfft.makemask', logfile)
+            logger.info('Getting global background stddev in cross-convolved images')
             
-        #     if conv_ref:
-        #         fname_ref_cc = maindir + 'output/{}.crossconvd.fits'.format(ref_name)
-        #     else:
-        #         fname_ref_cc = maindir + 'output/{}.fits'.format(ref_name)
+            if conv_ref:
+                fname_ref_cc = maindir + 'output/{}.crossconvd.fits'.format(ref_name)
+            else:
+                fname_ref_cc = maindir + 'output/{}.fits'.format(ref_name)
                 
-        #     if conv_sci:
-        #         fname_sci_cc = maindir + 'output/{}.crossconvd.fits'.format(sci_name)
-        #     else:
-        #         fname_sci_cc = maindir + 'output/{}.fits'.format(sci_name)
+            if conv_sci:
+                fname_sci_cc = maindir + 'output/{}.crossconvd.fits'.format(sci_name)
+            else:
+                fname_sci_cc = maindir + 'output/{}.fits'.format(sci_name)
                 
-        #     with fits.open(fname_ref_cc) as hdul:
-        #         im_r = hdul[0].data.copy()
-        #     with fits.open(fname_sci_cc) as hdul:
-        #         im_s = hdul[0].data.copy()
+            with fits.open(fname_ref_cc) as hdul:
+                im_r = hdul[0].data.copy()
+            with fits.open(fname_sci_cc) as hdul:
+                im_s = hdul[0].data.copy()
                 
                 
                 
-        #     fname_mref = maindir + 'input/{}.maskin.fits'.format(ref_name)
-        #     fname_msci = maindir + 'input/{}.maskin.fits'.format(sci_name)
-        #     with fits.open(fname_mref) as hdul:
-        #         mask_r = hdul[0].data.astype(bool)
-        #     with fits.open(fname_msci) as hdul:
-        #         mask_s = hdul[0].data.astype(bool)
+            fname_mref = maindir + 'input/{}.maskin.fits'.format(ref_name)
+            fname_msci = maindir + 'input/{}.maskin.fits'.format(sci_name)
+            with fits.open(fname_mref) as hdul:
+                mask_r = hdul[0].data.astype(bool)
+            with fits.open(fname_msci) as hdul:
+                mask_s = hdul[0].data.astype(bool)
                 
-        #     mask_all = mask_r | mask_s
+            mask_all = mask_r | mask_s
                 
-        #     _, _, bkgstd_ref_global = sigma_clipped_stats(im_r, sigma=3.0, maxiters=None, mask=mask_all)
-        #     logger.info('Global background stddev in cross-convolved REF image: {:.2e}'.format(bkgstd_ref_global))
+            _, _, bkgstd_ref_global = sigma_clipped_stats(im_r, sigma=3.0, maxiters=None, mask=mask_all)
+            logger.info('Global background stddev in cross-convolved REF image: {:.2e}'.format(bkgstd_ref_global))
             
-        #     _, _, bkgstd_sci_global = sigma_clipped_stats(im_s, sigma=3.0, maxiters=None, mask=mask_all)
-        #     logger.info('Global background stddev in cross-convolved SCI image: {:.2e}'.format(bkgstd_sci_global)) 
+            _, _, bkgstd_sci_global = sigma_clipped_stats(im_s, sigma=3.0, maxiters=None, mask=mask_all)
+            logger.info('Global background stddev in cross-convolved SCI image: {:.2e}'.format(bkgstd_sci_global)) 
             
-        #     del im_r, im_s, mask_r, mask_s, mask_all     
+            del im_r, im_s, mask_r, mask_s, mask_all     
             
-        #     reset_logger(logger)
+            reset_logger(logger)
         
-            #Wide Ep 01
-            bkgstd_ref_global = 7.13e-5
-            #Deep Ep 01
-            bkgstd_sci_global = 1.44e-4
+            # #Wide Ep 01
+            # bkgstd_ref_global = 7.13e-5
+            # #Deep Ep 01
+            # bkgstd_sci_global = 1.44e-4
             
-        # else:
-        #     bkgstd_ref_global = np.inf
-        #     bkgstd_sci_global = np.inf
+        else:
+            bkgstd_ref_global = np.inf
+            bkgstd_sci_global = np.inf
             
             
     logfile = maindir + 'sfft.log'
