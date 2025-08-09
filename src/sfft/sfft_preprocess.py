@@ -136,7 +136,7 @@ def cross_conv(maindir, ref_name, sci_name, conv_ref, conv_sci, skysub, logger):
 ##########################################################################################################################################
 ##########################################################################################################################################
 
-def subtract_sky(maindir, ref_name, sci_name, logger, mask_type='sextractor'):    
+def subtract_sky(maindir, ref_name, sci_name, logger, mask_type='sextractor', ncpu=1):    
     """ Subtract a constant sky value from the REF and SCI images using either SExtractor or NoiseChisel. 
     The constant value is obtained from the background pixels in either image.
     
@@ -175,13 +175,13 @@ def subtract_sky(maindir, ref_name, sci_name, logger, mask_type='sextractor'):
     #REF
     SEx_SkySubtract.SSS(FITS_obj=fname_ref, FITS_skysub=fname_out_ref, mask_type=mask_type, FITS_sky=None, FITS_skyrms=None,
                         SATUR_KEY='SATURATE', ESATUR_KEY='ESATUR', BACK_SIZE=64, BACK_FILTERSIZE=3,
-                        DETECT_THRESH=1.5, DETECT_MINAREA=5, DETECT_MAXAREA=0, VERBOSE_LEVEL=2)
+                        DETECT_THRESH=1.5, DETECT_MINAREA=5, DETECT_MAXAREA=0, VERBOSE_LEVEL=2, NCPU=ncpu)
     logger.info('\t REF image complete')
     
     #SCI
     SEx_SkySubtract.SSS(FITS_obj=fname_sci, FITS_skysub=fname_out_sci, mask_type=mask_type, FITS_sky=None, FITS_skyrms=None,
                         SATUR_KEY='SATURATE', ESATUR_KEY='ESATUR', BACK_SIZE=64, BACK_FILTERSIZE=3,
-                        DETECT_THRESH=1.5, DETECT_MINAREA=5, DETECT_MAXAREA=0, VERBOSE_LEVEL=2)
+                        DETECT_THRESH=1.5, DETECT_MINAREA=5, DETECT_MAXAREA=0, VERBOSE_LEVEL=2, NCPU=ncpu)
     logger.info('\t SCI image complete')
     
     

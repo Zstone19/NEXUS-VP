@@ -16,7 +16,7 @@ class SEx_SkySubtract:
     @staticmethod
     def SSS(FITS_obj, FITS_skysub=None, FITS_sky=None, FITS_skyrms=None, mask_type='sextractor', SATUR_KEY='SATURATE', ESATUR_KEY='ESATUR', \
         BACK_SIZE=64, BACK_FILTERSIZE=3, DETECT_THRESH=1.5, DETECT_MINAREA=5, DETECT_MAXAREA=0, \
-        VERBOSE_LEVEL=2, MDIR=None):
+        VERBOSE_LEVEL=2, MDIR=None, NCPU=1):
 
         """
         # Inputs & Outputs:
@@ -93,7 +93,7 @@ class SEx_SkySubtract:
                     continue
 
                 try:
-                    subprocess.run(['astnoisechisel', FITS_obj_temp, '-o', mask_fname, '-h', '0', '-N', '1', '--oneelempertile', '--rawoutput', '--minnumfalse', '1', '--interpnumngb={}'.format(nngb)], check=True, capture_output=True).stdout
+                    subprocess.run(['astnoisechisel', FITS_obj_temp, '-o', mask_fname, '-h', '0', '-N', str(NCPU), '--oneelempertile', '--rawoutput', '--minnumfalse', '1', '--interpnumngb={}'.format(nngb)], check=True, capture_output=True).stdout
                     mask_nonexist = False
                 except:
                     print(nngb)

@@ -304,7 +304,7 @@ Saturation SCI: {:.2e}
         else:
             _, logger = setup_logger('NVP.sfft.skysub', logfile)
             logger.info('Subtracting sky from images')
-            subtract_sky(maindir, ref_name, sci_name, logger, mask_type=mask_type)
+            subtract_sky(maindir, ref_name, sci_name, logger, mask_type=mask_type, ncpu=ncpu)
             reset_logger(logger)
             
             
@@ -439,7 +439,7 @@ Saturation SCI: {:.2e}
                 reset_logger(logger)
                 
                 _, logger_i = setup_logger('NVP.sfft.skysub', logfile_i)
-                subtract_sky(maindir_i, ref_name, sci_name, logger_i, mask_type=mask_type)
+                subtract_sky(maindir_i, ref_name, sci_name, logger_i, mask_type=mask_type, ncpu=ncpu)
                 reset_logger(logger_i)
         
     
