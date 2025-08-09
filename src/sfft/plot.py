@@ -16,7 +16,7 @@ from astropy.nddata import Cutout2D
 from astropy.wcs.utils import skycoord_to_pixel
 
 import sys
-sys.path.append('/home/stone28/projects/WebbDiffImg/pipeline/src/psf/')
+sys.path.append('/home/stone28/projects/WebbDiffImg/NEXUS-VP/src/psf/')
 from psf_utils import estimate_psf_fwhm
 
 

@@ -395,7 +395,11 @@ Saturation SCI: {:.2e}
                                                  pp_separate=pp_separate, skysub=skysub, conv_ref=conv_ref, conv_sci=conv_sci)      
                 logger.info('\t Cutout file: {}'.format(cutout_fname))
      
-            _, _, _, _, _, _, fracs_nnz, cutout_names = np.loadtxt(cutout_fname, dtype=object, unpack=True, skiprows=1)                        
+            ras, decs, _, _, n0_vals, n1_vals, fracs_nnz, cutout_names = np.loadtxt(cutout_fname, dtype=object, unpack=True, skiprows=1) 
+            ras = np.atleast_1d(ras).astype(float)
+            decs = np.atleast_1d(decs).astype(float)     
+            n0_vals = np.atleast_1d(n0_vals).astype(int)
+            n1_vals = np.atleast_1d(n1_vals).astype(int)                
             cutout_names = np.atleast_1d(cutout_names).astype(str)
             fracs_nnz = np.atleast_1d(fracs_nnz).astype(float)
             ncutout = len(cutout_names)
@@ -469,60 +473,76 @@ Saturation SCI: {:.2e}
         bkgstd_sci_global = np.inf    
     else:
         
-        #Check if all masks are made already
-        mask_exist = np.zeros(ncutout, dtype=bool)
-        for i in range(ncutout):
-            cutout_name = cutout_names[i]
-            maindir_i = maindir + 'output_{}/'.format(cutout_name)
+        # #Check if all masks are made already
+        # mask_exist = np.zeros(ncutout, dtype=bool)
+        # for i in range(ncutout):
+        #     cutout_name = cutout_names[i]
+        #     maindir_i = maindir + 'output_{}/'.format(cutout_name)
             
 
-            fname = maindir_i + 'mask/{}.mask4sfft.fits'.format(ref_name)                
-            if os.path.exists(fname):
-                mask_exist[i] = True
+        #     fname = maindir_i + 'mask/{}.mask4sfft.fits'.format(ref_name)                
+        #     if os.path.exists(fname):
+        #         mask_exist[i] = True
                 
-        if np.sum(~mask_exist) > 0:        
-            _, logger = setup_logger('NVP.sfft.makemask', logfile)
-            logger.info('Getting global background stddev in cross-convolved images')
+        # if np.sum(~mask_exist) > 0:        
+        #     _, logger = setup_logger('NVP.sfft.makemask', logfile)
+        #     logger.info('Getting global background stddev in cross-convolved images')
             
-            if conv_ref:
-                fname_ref_cc = maindir + 'output/{}.crossconvd.fits'.format(ref_name)
-            else:
-                fname_ref_cc = maindir + 'output/{}.fits'.format(ref_name)
+        #     if conv_ref:
+        #         fname_ref_cc = maindir + 'output/{}.crossconvd.fits'.format(ref_name)
+        #     else:
+        #         fname_ref_cc = maindir + 'output/{}.fits'.format(ref_name)
                 
-            if conv_sci:
-                fname_sci_cc = maindir + 'output/{}.crossconvd.fits'.format(sci_name)
-            else:
-                fname_sci_cc = maindir + 'output/{}.fits'.format(sci_name)
+        #     if conv_sci:
+        #         fname_sci_cc = maindir + 'output/{}.crossconvd.fits'.format(sci_name)
+        #     else:
+        #         fname_sci_cc = maindir + 'output/{}.fits'.format(sci_name)
                 
-            with fits.open(fname_ref_cc) as hdul:
-                im_r = hdul[0].data.copy()
-            with fits.open(fname_sci_cc) as hdul:
-                im_s = hdul[0].data.copy()
+        #     with fits.open(fname_ref_cc) as hdul:
+        #         im_r = hdul[0].data.copy()
+        #     with fits.open(fname_sci_cc) as hdul:
+        #         im_s = hdul[0].data.copy()
                 
                 
                 
-            fname_mref = maindir + 'input/{}.maskin.fits'.format(ref_name)
-            fname_msci = maindir + 'input/{}.maskin.fits'.format(sci_name)
-            with fits.open(fname_mref) as hdul:
-                mask_r = hdul[0].data.astype(bool)
-            with fits.open(fname_msci) as hdul:
-                mask_s = hdul[0].data.astype(bool)
+        #     fname_mref = maindir + 'input/{}.maskin.fits'.format(ref_name)
+        #     fname_msci = maindir + 'input/{}.maskin.fits'.format(sci_name)
+        #     with fits.open(fname_mref) as hdul:
+        #         mask_r = hdul[0].data.astype(bool)
+        #     with fits.open(fname_msci) as hdul:
+        #         mask_s = hdul[0].data.astype(bool)
                 
-            mask_all = mask_r | mask_s
+        #     mask_all = mask_r | mask_s
                 
-            _, _, bkgstd_ref_global = sigma_clipped_stats(im_r, sigma=3.0, maxiters=None, mask=mask_all)
-            logger.info('Global background stddev in cross-convolved REF image: {:.2e}'.format(bkgstd_ref_global))
+        #     _, _, bkgstd_ref_global = sigma_clipped_stats(im_r, sigma=3.0, maxiters=None, mask=mask_all)
+        #     logger.info('Global background stddev in cross-convolved REF image: {:.2e}'.format(bkgstd_ref_global))
             
-            _, _, bkgstd_sci_global = sigma_clipped_stats(im_s, sigma=3.0, maxiters=None, mask=mask_all)
-            logger.info('Global background stddev in cross-convolved SCI image: {:.2e}'.format(bkgstd_sci_global)) 
+        #     _, _, bkgstd_sci_global = sigma_clipped_stats(im_s, sigma=3.0, maxiters=None, mask=mask_all)
+        #     logger.info('Global background stddev in cross-convolved SCI image: {:.2e}'.format(bkgstd_sci_global)) 
             
-            del im_r, im_s, mask_r, mask_s, mask_all     
+        #     del im_r, im_s, mask_r, mask_s, mask_all     
             
-            reset_logger(logger)
+        #     reset_logger(logger)
+        
+            #Wide Ep 01
+            bkgstd_ref_global = 7.13e-5
+            #Deep Ep 01
+            bkgstd_sci_global = 1.44e-4
             
-        else:
-            bkgstd_ref_global = np.inf
-            bkgstd_sci_global = np.inf
+        # else:
+        #     bkgstd_ref_global = np.inf
+        #     bkgstd_sci_global = np.inf
+            
+            
+    logfile = maindir + 'sfft.log'
+    _, logger = setup_logger('NVP.sfft.makemask', logfile)
+    logger.info('Running SExtractor on whole image')
+    sfftm.make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
+                    skysub, conv_ref, conv_sci, logger, sat_ref, sat_sci, 
+                    bkgstd_ref_global, bkgstd_sci_global, global_fit=True, 
+                    ra=None, dec=None, npx_side=None, ncpu=ncpu)
+    logger.info('Finished running SExtractor on whole image')
+    reset_logger(logger)
         
     
     if cutout_run and (not cutout_together):
@@ -540,7 +560,8 @@ Saturation SCI: {:.2e}
             logger_i.info('Making SFFT mask')
             sfftm.make_mask(maindir_i, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
                             skysub, conv_ref, conv_sci, logger_i, sat_ref, sat_sci, 
-                            bkgstd_ref_global, bkgstd_sci_global, ncpu)
+                            bkgstd_ref_global, bkgstd_sci_global, global_fit=False, 
+                            ra=ras[i], dec=decs[i], npx_side=(n0_vals[i], n1_vals[i]), ncpu=ncpu)
             logger_i.info('Finished making SFFT mask')
             
             reset_logger(logger_i)
@@ -551,7 +572,8 @@ Saturation SCI: {:.2e}
         logger.info('Making SFFT mask')
         sfftm.make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
                         skysub, conv_ref, conv_sci, logger, sat_ref, sat_sci, 
-                        bkgstd_ref_global, bkgstd_sci_global, ncpu)
+                        bkgstd_ref_global, bkgstd_sci_global, global_fit=False, 
+                        ra=None, dec=None, npx_side=None, ncpu=ncpu)
         logger.info('Finished making SFFT mask')
         
         reset_logger(logger)

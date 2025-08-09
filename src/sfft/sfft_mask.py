@@ -15,6 +15,8 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+from astropy.wcs import WCS
+from astropy.nddata import Cutout2D
 
 
 
@@ -152,7 +154,8 @@ def check_nsig_bkg(ind, sexseg, bkgstd_mask_ind):
 
 def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
               skysub, conv_ref, conv_sci, logger, saturation_ref=.01, saturation_sci=.01, 
-              bkgstd_ref_global=np.inf, bkgstd_sci_global=np.inf, ncpu=1):
+              bkgstd_ref_global=np.inf, bkgstd_sci_global=np.inf, global_fit=False, 
+              ra=None, dec=None, npx_side=None, ncpu=1):
     
     """Make the masks for SFFT to use. This mask is a binary one, with 1 for the pixels to be used and 0 for the pixels to be masked.
     This requires the cross-convolved images, noise images, and input image masks. The masks will be output as {ref_name}.mask4sfft.fits
@@ -202,6 +205,9 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         The global background standard deviation for the reference image. Default is np.inf.
     bkgstd_sci_global : float
         The global background standard deviation for the science image. Default is np.inf.
+    global_fit : bool
+        Whether to perform a global fit or not. Default is False. If True, will not create a 
+        mask, just run SExtractor.
     ncpu : int
         The number of CPUs to use for SExtractor. Default is 1.
     
@@ -213,7 +219,7 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     """
     
     nsig = 3.
-    sex_path = '/home/stone28/software/sextractor/install/bin/sex'
+    # sex_path = '/home/stone28/software/sextractor/install/bin/sex'
     sex_path = 'sex'
     
     
@@ -222,6 +228,14 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     psfdir = maindir + 'psf/'
     noisedir = maindir + 'noise/'
     outdir = maindir + 'mask/'
+    
+    if 'output' in maindir:
+        maindir_global = '/'.join( maindir.split('/')[:-2] ) + '/'
+    else:
+        maindir_global = maindir
+        
+    maskdir_global = maindir_global + 'mask/'
+        
     
     
     #Define file names
@@ -251,6 +265,9 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     
     fname_out_ref = outdir + '{}.mask4sfft.fits'.format(ref_name)
     fname_out_sci = outdir + '{}.mask4sfft.fits'.format(sci_name)
+    
+    fname_psf_ref = psfdir + '{}.psf.fits'.format(ref_name)
+    fname_psf_sci = psfdir + '{}.psf.fits'.format(sci_name)
     
     with fits.open(fname_ref) as hdu:
         im1 = hdu[0].data
@@ -404,7 +421,7 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     content_ref[44]  = 'FLAG_IMAGE       {}              # filename for an input FLAG-image\n'.format(fname_ref_maskin)
 
     content_ref[55]  = "PHOT_APERTURES   {}              # MAG_APER aperture diameter(s) in pixels\n".format(phot_aper)  # 5 times FWHM
-    content_ref[63]  = "SATUR_LEVEL      {}              # level (in ADUs) at which arises saturation\n".format(saturation_ref)
+    # content_ref[63]  = "SATUR_LEVEL      {}              # level (in ADUs) at which arises saturation\n".format(saturation_ref)
     content_ref[66]  = 'MAG_ZEROPOINT    {}              # magnitude zero-point\n'.format(mag_zp_ref)
     
     content_ref[74]  = "SEEING_FWHM      {}              # stellar FWHM in arcsec\n".format(seeing_fwhm)    
@@ -413,7 +430,8 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
 
     content_ref[95]  = 'CHECKIMAGE_NAME  {}              # Filename for the check-image\n'.format(outdir + '{}_sexseg.fits'.format(ref_name))
     content_ref[122] = 'NTHREADS         {}              # 1 single thread\n'.format(ncpu)
-    
+    # content_ref[131] = "PSF_NAME         {}              # File containing the PSF model\n".format(fname_psf_ref)
+
     fname_ref_config = outdir + 'default_{}.sex'.format(ref_name)
     with open(fname_ref_config, 'w') as f:
         f.writelines(content_ref)
@@ -453,7 +471,7 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     content_sci[44]  = 'FLAG_IMAGE       {}              # filename for an input FLAG-image\n'.format(fname_sci_maskin)
 
     content_sci[55]  = "PHOT_APERTURES   {}              # MAG_APER aperture diameter(s) in pixels\n".format(phot_aper)  # 5 times FWHM
-    content_sci[63]  = "SATUR_LEVEL      {}              # level (in ADUs) at which arises saturation\n".format(saturation_sci)
+    # content_sci[63]  = "SATUR_LEVEL      {}              # level (in ADUs) at which arises saturation\n".format(saturation_sci)
     content_sci[66]  = 'MAG_ZEROPOINT    {}              # magnitude zero-point\n'.format(mag_zp_sci)
     
     content_sci[74]  = "SEEING_FWHM      {}              # stellar FWHM in arcsec\n".format(seeing_fwhm)
@@ -462,6 +480,7 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
 
     content_sci[95]  = 'CHECKIMAGE_NAME  {}              # Filename for the check-image\n'.format(outdir + '{}_sexseg.fits'.format(sci_name))
     content_sci[122] = 'NTHREADS         {}               # 1 single thread\n'.format(ncpu)
+    # content_sci[131] = "PSF_NAME         {}              # File containing the PSF model\n".format(fname_psf_sci)
     
     fname_sci_config = outdir + 'default_{}.sex'.format(sci_name)
     with open(fname_sci_config, 'w') as f:
@@ -475,9 +494,34 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         with open(maindir + 'sfft.log', 'a') as f:
             subprocess.run([sex_path, fname_sci, '-c', fname_sci_config], check=True, stdout=f)
         logger.info('Finished running SExtractor for SCI')
+        
+    if global_fit:
+        return
     
     ########################################################################################################################################################
     #Make mask
+    
+    logger.info('Reading global SExtrcator output')
+    with fits.open(maskdir_global + '{}.cat'.format(ref_name)) as hdul:
+        catdat_ref_global = Table(hdul[2].data)
+    with fits.open(maskdir_global + '{}.cat'.format(sci_name)) as hdul:
+        catdat_sci_global = Table(hdul[2].data)
+        
+    with fits.open(maskdir_global + '{}_sexseg.fits'.format(ref_name)) as hdul:
+        seg_ref_global = hdul[0].data
+    with fits.open(maskdir_global + '{}_sexseg.fits'.format(sci_name)) as hdul:
+        seg_sci_global = hdul[0].data
+        
+    with fits.open(maindir_global + 'input/{}.fits'.format(ref_name)) as hdul:
+        hdr_ref_global = hdul[0].header
+        wcs_ref_global = WCS(hdul[0].header)
+    with fits.open(maindir_global + 'input/{}.fits'.format(sci_name)) as hdul:
+        hdr_sci_global = hdul[0].header
+        wcs_sci_global = WCS(hdul[0].header)
+    
+    logger.info('\t Number of objects in global REF catalog: {}'.format(len(catdat_ref_global)))
+    logger.info('\t Number of objects in global SCI catalog: {}'.format(len(catdat_sci_global)))
+    
     
     logger.info('Reading SExtractor output')
     
@@ -506,6 +550,66 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         
     logger.info('\t Number of objects in REF catalog: {}'.format(len(catdat_ref)))
     logger.info('\t Number of objects in SCI catalog: {}'.format(len(catdat_sci)))
+    
+    
+    #Crop global segmentation maps to the size of the input images
+    logger.info('Cropping global segmentation maps to the size of the input images')
+    if (ra is not None) or (dec is not None) or (npx_side is not None):
+        coord_cent = SkyCoord(ra=ra, dec=dec, unit=(u.deg, u.deg))
+        
+        seg_ref_global = Cutout2D(seg_ref_global, position=coord_cent, size=(npx_side[0]*u.pixel, npx_side[1]*u.pixel), wcs=wcs_sci_global).data.astype(int)
+        seg_sci_global = Cutout2D(seg_sci_global, position=coord_cent, size=(npx_side[0]*u.pixel, npx_side[1]*u.pixel), wcs=wcs_ref_global).data.astype(int)
+    
+    
+    #Only keep global objects in the cutout segmentation maps
+    unique_ind_ref_global = np.unique(seg_ref_global[seg_ref_global > 0])
+    unique_ind_sci_global = np.unique(seg_sci_global[seg_sci_global > 0])
+    
+    objmask_ref_global = np.array([ x in unique_ind_ref_global for x in catdat_ref_global['NUMBER'].data ])
+    objmask_sci_global = np.array([ x in unique_ind_sci_global for x in catdat_sci_global['NUMBER'].data ])
+
+    catdat_ref_global = catdat_ref_global[objmask_ref_global].copy()
+    catdat_sci_global = catdat_sci_global[objmask_sci_global].copy()
+    
+    catdat_ref_global.write(outdir + '{}.global.cat'.format(ref_name), overwrite=True, format='fits')
+    catdat_sci_global.write(outdir + '{}.global.cat'.format(sci_name), overwrite=True, format='fits')
+    fits.writeto(outdir + '{}_sexseg.global.fits'.format(ref_name), seg_ref_global, hdr_ref_global, overwrite=True)
+    fits.writeto(outdir + '{}_sexseg.global.fits'.format(sci_name), seg_sci_global, hdr_sci_global, overwrite=True)
+
+
+
+    #Match gobal catalogs to local catalogs
+    logger.info('Matching global catalogs to local catalogs')
+    
+    coords_global_ref = SkyCoord(ra=catdat_ref_global['ALPHA_J2000'], dec=catdat_ref_global['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_global_sci = SkyCoord(ra=catdat_sci_global['ALPHA_J2000'], dec=catdat_sci_global['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_ref = SkyCoord(ra=catdat_ref['ALPHA_J2000'], dec=catdat_ref['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_sci = SkyCoord(ra=catdat_sci['ALPHA_J2000'], dec=catdat_sci['DELTA_J2000'], unit=(u.deg, u.deg))
+    
+    if len(coords_global_ref) == 0 or len(coords_ref) == 0:
+        catdat_matched_global_ref = Table(names=catdat_ref_global.colnames)
+        catdat_matched_ref = Table(names=catdat_ref.colnames)
+    else:        
+        idx, d2d, _ = coords_ref.match_to_catalog_sky(coords_global_ref)
+        mask = d2d.arcsec < 0.1
+        catdat_matched_global_ref = catdat_ref_global[idx[mask]].copy()
+        catdat_matched_ref = catdat_ref[mask].copy()
+    
+    
+    if len(coords_global_sci) == 0 or len(coords_sci) == 0:
+        catdat_matched_global_sci = Table(names=catdat_sci_global.colnames)
+        catdat_matched_sci = Table(names=catdat_sci.colnames)
+    else:
+        idx, d2d, _ = coords_sci.match_to_catalog_sky(coords_global_sci)
+        mask = d2d.arcsec < 0.1
+        catdat_matched_global_sci = catdat_sci_global[idx[mask]].copy()
+        catdat_matched_sci = catdat_sci[mask].copy()
+    
+    logger.info('\t Number of objects in matched REF catalog: {}'.format(len(catdat_matched_ref)))
+    logger.info('\t Number of objects in matched SCI catalog: {}'.format(len(catdat_matched_sci)))
+    
+    
+    
         
         
     #Get background stddev in cross-convolved images 
@@ -517,48 +621,150 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     bkgstd_sci = np.min([bkgstd_sci, bkgstd_sci_global])
     logger.info('\t REF background stddev: {:.2e}'.format(bkgstd_ref))
     logger.info('\t SCI background stddev: {:.2e}'.format(bkgstd_sci))
-
-
-    # #Assign indices
-    # if len(catdat_ref) > 0:
-    #     catdat_ref['INDEX'] = np.array( range(len(catdat_ref)) ) +1
-    # else:
-    #     catdat_ref['INDEX'] = np.array([])
-
-    # catdat_sci['INDEX'] = np.array( range(len(catdat_sci)) ) +1
     
     
     #Get rid of saturated stars
     logger.info('Removing saturated stars from REF and SCI catalogs')
+    
+    #Use global catalogs for bright sources, local catalogs for dimmer ones    
+        #Bright (f_aper > 30)
+    bad_mask_r_global = ((catdat_ref_global['FLUX_APER'] > 45) | (catdat_ref_global['MAG_AUTO'] < 17)) & (catdat_ref_global['CLASS_STAR'] > .9)
+    bad_mask_s_global = ((catdat_sci_global['FLUX_APER'] > 45) | (catdat_sci_global['MAG_AUTO'] < 17)) & (catdat_sci_global['CLASS_STAR'] > .9)
+        #Dim (f_aper < 30)
+    bad_mask_r = ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) ) #| (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 45) ) )
+    bad_mask_s = ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) ) #| (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 45) ) )      
 
-    if filtername_ref in SW.keys():
-        # bad_mask_r = ( ( ( (catdat_ref['CLASS_STAR'] > .95) & (catdat_ref['FLUX_APER'] > 6) & (catdat_ref['ELONGATION'] < 1.3) ) | (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 35) ) )
-        # bad_mask_s = ( ( ( (catdat_sci['CLASS_STAR'] > .95) & (catdat_sci['FLUX_APER'] > 6) & (catdat_sci['ELONGATION'] < 1.3) ) | (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 35) ) )
-        
-        bad_mask_r = ( ( ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) ) | (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 45) ) )
-        bad_mask_s = ( ( ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) ) | (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 45) ) )
+    #If there are bright sources in the local catalogs, but not in the global ones, put them in the local saturation catalogs
+    bad_mask_r_local_bright = (catdat_ref['FLUX_APER'] > 45) | (catdat_ref['MAG_AUTO'] < 17)
+    bad_mask_s_local_bright = (catdat_sci['FLUX_APER'] > 45) | (catdat_sci['MAG_AUTO'] < 17)
+    catdat_ref_local_bright = catdat_ref[bad_mask_r_local_bright].copy()
+    catdat_sci_local_bright = catdat_sci[bad_mask_s_local_bright].copy()
+    
+    logger.info('\t Number of local bright sources in REF catalog: {}'.format(len(catdat_ref_local_bright)))
+    logger.info('\t Number of local bright sources in SCI catalog: {}'.format(len(catdat_sci_local_bright)))
+    
+    
+    #If pixels overlap between a "local only" bright source and a global source, the local one is most likely a large (unsaturated) source near the edge of the image
+    #Remove these from the local saturation catalogs
+    fake_bright_mask_r = np.zeros(len(catdat_ref_local_bright), dtype=bool)
+    fake_bright_mask_s = np.zeros(len(catdat_sci_local_bright), dtype=bool)
+    if len(catdat_ref_local_bright) > 0:
+
+        for i in tqdm(  range(len(catdat_ref_local_bright))  ):
+            coords_ref_local_bright = SkyCoord([catdat_ref_local_bright['ALPHA_J2000'][i]], [catdat_ref_local_bright['DELTA_J2000'][i]], unit=(u.deg, u.deg))
+            idx, d2d, _ = coords_ref_local_bright.match_to_catalog_sky(coords_global_ref)
+
+            ind_local = np.argmin(d2d.arcsec)
+            src_local = catdat_ref_local_bright[ind_local]
+            src_global = catdat_ref_global[idx[ind_local]]      
+            
+            n_local = (seg_ref == src_local['NUMBER']).sum()
+            n_global = (seg_ref_global == src_global['NUMBER']).sum()
+            npx = np.max([n_local, n_global])
+            
+            overlap_px = ((seg_ref == src_local['NUMBER']) & (seg_ref_global == src_global['NUMBER'])).sum()
+            
+            
+            if overlap_px > 0.25 * npx:        
+                fake_bright_mask_r[i] = True
+                
+                
+    if len(catdat_sci_local_bright) > 0:
+        for i in tqdm(  range(len(catdat_sci_local_bright))  ):
+            coords_sci_local_bright = SkyCoord([catdat_sci_local_bright['ALPHA_J2000'][i]], [catdat_sci_local_bright['DELTA_J2000'][i]], unit=(u.deg, u.deg))
+            idx, d2d, _ = coords_sci_local_bright.match_to_catalog_sky(coords_global_sci)
+
+            ind_local = np.argmin(d2d.arcsec)
+            src_local = catdat_sci_local_bright[ind_local]
+            src_global = catdat_sci_global[idx[ind_local]]         
+            
+            n_local = (seg_sci == src_local['NUMBER']).sum()
+            n_global = (seg_sci_global == src_global['NUMBER']).sum()
+            npx = np.max([n_local, n_global])
+            
+            overlap_px = ((seg_sci == src_local['NUMBER']) & (seg_sci_global == src_global['NUMBER'])).sum()
+            
+            
+            if overlap_px > 0.25 * npx:        
+                fake_bright_mask_s[i] = True
+
+    logger.info('\t Number of fake bright sources in REF catalog: {}'.format(fake_bright_mask_r.sum()))
+    logger.info('\t Number of fake bright sources in SCI catalog: {}'.format(fake_bright_mask_s.sum()))
+
+    bad_mask_r_local_bright[bad_mask_r_local_bright][fake_bright_mask_r] = False
+    bad_mask_s_local_bright[bad_mask_s_local_bright][fake_bright_mask_s] = False
+    catdat_ref_local_bright = catdat_ref_local_bright[~fake_bright_mask_r].copy()
+    catdat_sci_local_bright = catdat_sci_local_bright[~fake_bright_mask_s].copy()
 
 
-    if filtername_ref in LW.keys():
-        # bad_mask_r = (catdat_ref['CLASS_STAR'] > .99) | ( ( (catdat_ref['CLASS_STAR'] > .9) & (catdat_ref['MAG_AUTO'] < 23) ) | (catdat_ref['MAG_AUTO'] < 18) | (catdat_ref['FLUX_APER'] > 30) )
-        # bad_mask_s = (catdat_sci['CLASS_STAR'] > .99) | ( ( (catdat_sci['CLASS_STAR'] > .9) & (catdat_sci['MAG_AUTO'] < 23) ) | (catdat_sci['MAG_AUTO'] < 18) | (catdat_sci['FLUX_APER'] > 30) )
-        
-        bad_mask_r = ( ( ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) ) | (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 45) ) )
-        bad_mask_s = ( ( ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) ) | (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 45) ) )
-        
 
-
+    #Initial saturation catalogs
     catdat_ref_sat = catdat_ref[bad_mask_r].copy()
     catdat_sci_sat = catdat_sci[bad_mask_s].copy()
+    catdat_ref_sat_global = catdat_ref_global[bad_mask_r_global].copy()
+    catdat_sci_sat_global = catdat_sci_global[bad_mask_s_global].copy()
+    
+    #Want no overlap between the two catalogs
+    #If a source is in the local and global saturation catalogs, remove it from the local catalog
+    #Segmentation map for the global catalog is most likely better than the local one for bright sources
+    coords_ref_sat = SkyCoord(catdat_ref_sat['ALPHA_J2000'], catdat_ref_sat['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_sci_sat = SkyCoord(catdat_sci_sat['ALPHA_J2000'], catdat_sci_sat['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_ref_sat_global = SkyCoord(catdat_ref_sat_global['ALPHA_J2000'], catdat_ref_sat_global['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_sci_sat_global = SkyCoord(catdat_sci_sat_global['ALPHA_J2000'], catdat_sci_sat_global['DELTA_J2000'], unit=(u.deg, u.deg))
+
+    if len(coords_ref_sat_global) == 0 or len(coords_ref_sat) == 0:
+        matched_ref_sat = Table(names=catdat_ref_sat_global.colnames)
+        matched_ref_sat_global = Table(names=catdat_ref_sat.colnames)
+    else:
+        idx, d2d, _ = coords_ref_sat.match_to_catalog_sky(coords_ref_sat_global)
+        mask = d2d.arcsec < 0.1
+        matched_ref_sat = catdat_ref_sat_global[idx[mask]].copy()
+        matched_ref_sat_global = catdat_ref_sat[mask].copy()
+    
+    if len(coords_sci_sat_global) == 0 or len(coords_sci_sat) == 0:
+        matched_sci_sat = Table(names=catdat_sci_sat_global.colnames)
+        matched_sci_sat_global = Table(names=catdat_sci_sat.colnames)
+    else:
+        idx, d2d, _ = coords_sci_sat.match_to_catalog_sky(coords_sci_sat_global)
+        mask = d2d.arcsec < 0.1
+        matched_sci_sat = catdat_sci_sat_global[idx[mask]].copy()
+        matched_sci_sat_global = catdat_sci_sat[mask].copy()
+    
+    
+    #Mask for sources in the local catalogs that are also in the global ones
+    #Choose the global catalog if the source is in both
+    global_better_ref = np.array([ x in matched_ref_sat['NUMBER'].data for x in catdat_ref['NUMBER'].data ], dtype=bool)
+    global_better_sci = np.array([ x in matched_sci_sat['NUMBER'].data for x in catdat_sci['NUMBER'].data ], dtype=bool)
+
+    #Mask for bright stars in the local catalogs that are not in the (full) global ones
+    inds_local_only_r = catdat_ref_local_bright[ np.array([ not (x in catdat_matched_ref['NUMBER'].data) for x in catdat_ref_local_bright['NUMBER'].data ], dtype=bool) ]['NUMBER'].data
+    inds_local_only_s = catdat_sci_local_bright[ np.array([ not (x in catdat_matched_ref['NUMBER'].data) for x in catdat_sci_local_bright['NUMBER'].data ], dtype=bool) ]['NUMBER'].data
+    local_only_r = np.array([ x in inds_local_only_r for x in catdat_ref['NUMBER'].data ], dtype=bool)
+    local_only_s = np.array([ x in inds_local_only_s for x in catdat_sci['NUMBER'].data ], dtype=bool)
+
+    
+    catdat_ref_sat = catdat_ref[ (bad_mask_r | local_only_r) & (~global_better_ref)].copy()
+    catdat_sci_sat = catdat_sci[ (bad_mask_s | local_only_s) & (~global_better_sci)].copy()
+    catdat_ref_sat_global = catdat_ref_global[bad_mask_r_global].copy()
+    catdat_sci_sat_global = catdat_sci_global[bad_mask_s_global].copy()
+    logger.info('\t Number of saturated sources in REF catalog: {}'.format(len(catdat_ref_sat)))
+    logger.info('\t Number of saturated sources in SCI catalog: {}'.format(len(catdat_sci_sat)))
+    logger.info('\t Number of saturated sources in REF global catalog: {}'.format(len(catdat_ref_sat_global)))
+    logger.info('\t Number of saturated sources in SCI global catalog: {}'.format(len(catdat_sci_sat_global)))
+    
+    
+    #Dim (f < 30)
+        #Remove saturated sources from the global catalogs
+    catdat_ref = catdat_ref[(~bad_mask_r) & (catdat_ref['FLUX_APER'] < 30) & (~global_better_ref)].copy()
+    catdat_sci = catdat_sci[(~bad_mask_s) & (catdat_sci['FLUX_APER'] < 30) & (~global_better_sci)].copy()
+    #Bright (f >= 30)
+    catdat_ref_global = catdat_ref_global[(~bad_mask_r_global) & (catdat_ref_global['FLUX_APER'] >= 30)].copy()
+    catdat_sci_global = catdat_sci_global[(~bad_mask_s_global) & (catdat_sci_global['FLUX_APER'] >= 30)].copy()
     
     catdat_ref_sat.write(outdir + '{}_saturated_sources.cat'.format(ref_name), format='fits', overwrite=True)
     catdat_sci_sat.write(outdir + '{}_saturated_sources.cat'.format(sci_name), format='fits', overwrite=True)
-
-    catdat_ref = catdat_ref[~bad_mask_r].copy()
-    catdat_sci = catdat_sci[~bad_mask_s].copy()
-    logger.info('\t Number of saturated stars in REF: {}'.format(bad_mask_r.sum()))
-    logger.info('\t Number of saturated stars in SCI: {}'.format(bad_mask_s.sum()))
-
+    catdat_ref_sat_global.write(outdir + '{}_saturated_sources_bright.cat'.format(ref_name), format='fits', overwrite=True)
+    catdat_sci_sat_global.write(outdir + '{}_saturated_sources_bright.cat'.format(sci_name), format='fits', overwrite=True)
 
 
     #Get rid of objects with no px > nsig*stddev
@@ -572,20 +778,35 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         good_mask_s = pool.map(func, iter(catdat_sci['NUMBER'].data), iterable_len=len(catdat_sci), 
                               progress_bar=True, progress_bar_style='rich')
         
+        func = partial(check_nsig_bkg, sexseg=seg_ref_global.astype(int), bkgstd_mask_ind=np.argwhere(im_ref_cc > nsig*bkgstd_ref) )
+        good_mask_r_global = pool.map(func, iter(catdat_ref_global['NUMBER'].data), iterable_len=len(catdat_ref_global), 
+                              progress_bar=True, progress_bar_style='rich')
+        
+        func = partial(check_nsig_bkg, sexseg=seg_sci_global.astype(int), bkgstd_mask_ind=np.argwhere(im_sci_cc > nsig*bkgstd_sci) )
+        good_mask_s_global = pool.map(func, iter(catdat_sci_global['NUMBER'].data), iterable_len=len(catdat_sci_global), 
+                              progress_bar=True, progress_bar_style='rich')
+        
     good_mask_r = np.array(good_mask_r, dtype=bool)
     good_mask_s = np.array(good_mask_s, dtype=bool)
+    good_mask_r_global = np.array(good_mask_r_global, dtype=bool)
+    good_mask_s_global = np.array(good_mask_s_global, dtype=bool)
     
     
     catdat_ref = catdat_ref[good_mask_r].copy()
     catdat_sci = catdat_sci[good_mask_s].copy()
+    catdat_ref_global = catdat_ref_global[good_mask_r_global].copy()
+    catdat_sci_global = catdat_sci_global[good_mask_s_global].copy()
     logger.info('\t Number of sources with no px > {}*stddev in REF: {}'.format(nsig, np.sum(~good_mask_r)))
     logger.info('\t Number of sources with no px > {}*stddev in SCI: {}'.format(nsig, np.sum(~good_mask_s)))
-
+    logger.info('\t Number of sources with no px > {}*stddev in REF global: {}'.format(nsig, np.sum(~good_mask_r_global)))
+    logger.info('\t Number of sources with no px > {}*stddev in SCI global: {}'.format(nsig, np.sum(~good_mask_s_global)))
 
 
     logger.info('Matching catalogs for REF and SCI')
     coords_ref = SkyCoord(catdat_ref['ALPHA_J2000'], catdat_ref['DELTA_J2000'], unit=(u.deg, u.deg))
     coords_sci = SkyCoord(catdat_sci['ALPHA_J2000'], catdat_sci['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_ref_global = SkyCoord(catdat_ref_global['ALPHA_J2000'], catdat_ref_global['DELTA_J2000'], unit=(u.deg, u.deg))
+    coords_sci_global = SkyCoord(catdat_sci_global['ALPHA_J2000'], catdat_sci_global['DELTA_J2000'], unit=(u.deg, u.deg))
     
     #Match coords
     if len(coords_ref) > 0:
@@ -599,8 +820,21 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         matched_sci = Table(names=catdat_sci.colnames, dtype=catdat_sci.dtype)
         idx = np.array([])
         mask = np.zeros(len(catdat_sci), dtype=int)
+        
+    if len(coords_ref_global) > 0:
+        idx_global, d2d_global, _ = coords_sci_global.match_to_catalog_sky(coords_ref_global)
+        mask_global = d2d_global.arcsec < .1
+        
+        matched_ref_global = catdat_ref_global[idx_global[mask_global]]
+        matched_sci_global = catdat_sci_global[mask_global]
+    else:
+        matched_ref_global = Table(names=catdat_ref_global.colnames, dtype=catdat_ref_global.dtype)
+        matched_sci_global = Table(names=catdat_sci_global.colnames, dtype=catdat_sci_global.dtype)
+        idx_global = np.array([])
+        mask_global = np.zeros(len(catdat_sci_global), dtype=int)
 
     logger.info('\t Number of matched sources: {}'.format(len(matched_ref)))
+    logger.info('\t Number of matched sources in global catalogs: {}'.format(len(matched_ref_global)))
     
     
     
@@ -615,8 +849,8 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     
     #Mask all background pixels
     logger.info('Masking background pixels')
-    sfft_mask[seg_ref == 0] = 0
-    sfft_mask[seg_sci == 0] = 0
+    sfft_mask[(seg_ref == 0) & (seg_ref_global == 0)] = 0
+    sfft_mask[(seg_sci == 0) & (seg_sci_global == 0)] = 0
     
     #Mask all px <nsig*stddev in cross-convolved images
     logger.info('Masking px with <{}*stddev in cross-convolved images'.format(nsig))
@@ -641,6 +875,14 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_sci.astype(int))
         _ = pool.map(func, iter(catdat_sci_sat['NUMBER'].data), iterable_len=len(catdat_sci_sat), 
                             progress_bar=True, progress_bar_style='rich')
+        
+        func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_ref_global.astype(int))
+        _ = pool.map(func, iter(catdat_ref_sat_global['NUMBER'].data), iterable_len=len(catdat_ref_sat_global), 
+                            progress_bar=True, progress_bar_style='rich')
+        
+        func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_sci_global.astype(int))
+        _ = pool.map(func, iter(catdat_sci_sat_global['NUMBER'].data), iterable_len=len(catdat_sci_sat_global), 
+                            progress_bar=True, progress_bar_style='rich')
 
         
 
@@ -649,6 +891,9 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     
     unmatched_sci = catdat_sci[~mask].copy()
     unmatched_sci_flag0 = unmatched_sci[unmatched_sci['FLAGS'] == 0].copy()
+    
+    unmatched_sci_global = catdat_sci_global[~mask_global].copy()
+    unmatched_sci_global_flag0 = unmatched_sci_global[unmatched_sci_global['FLAGS'] == 0].copy()
     
     if len(coords_ref) > 0:
         unmatched_ref_mask = np.atleast_1d(  np.ones(len(catdat_ref), dtype=int)  )
@@ -662,6 +907,18 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         unmatched_ref = Table(names=catdat_ref.colnames, dtype=catdat_ref.dtype)
         unmatched_ref_flag0 = Table(names=catdat_ref.colnames, dtype=catdat_ref.dtype) 
     
+    
+    if len(coords_ref_global) > 0:
+        unmatched_ref_mask_global = np.atleast_1d(  np.ones(len(catdat_ref_global), dtype=int)  )
+        unmatched_ref_mask_global[idx_global[mask_global]] = 0
+        
+        unmatched_ref_mask_global = unmatched_ref_mask_global.astype(bool)
+        unmatched_ref_global = catdat_ref_global[unmatched_ref_mask_global].copy()
+        unmatched_ref_global_flag0 = unmatched_ref_global[unmatched_ref_global['FLAGS'] == 0].copy()
+        
+    else:
+        unmatched_ref_global = Table(names=catdat_ref_global.colnames, dtype=catdat_ref_global.dtype)
+        unmatched_ref_global_flag0 = Table(names=catdat_ref_global.colnames, dtype=catdat_ref_global.dtype)
 
     
 
@@ -674,12 +931,27 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     _ = pool.map(func, iter(unmatched_ref_flag0['NUMBER'].data), iterable_len=len(unmatched_ref_flag0), 
                         progress_bar=True, progress_bar_style='rich')
     
+    logger.info('\t Number of unmatched sources in REF global: {}'.format(len(unmatched_ref_global)))
+    logger.info('\t Number of unmatched sources in REF global (FLAGS=0): {}'.format(len(unmatched_ref_global_flag0)) )   
+    logger.info('\t Applying mask for unmatched sources in REF global (using {} CPUs)'.format(ncpu))
+    func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_ref_global.astype(int))
+    _ = pool.map(func, iter(unmatched_ref_global_flag0['NUMBER'].data), iterable_len=len(unmatched_ref_global_flag0), 
+                        progress_bar=True, progress_bar_style='rich')
+    
     logger.info('\t Number of unmatched sources in SCI: {}'.format(len(unmatched_sci)))
     logger.info('\t Number of unmatched sources in SCI (FLAGS=0): {}'.format(len(unmatched_sci_flag0)) )
     logger.info('\t Applying mask for unmatched sources in SCI (using {} CPUs)'.format(ncpu))
     func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_sci.astype(int))
     _ = pool.map(func, iter(unmatched_sci_flag0['NUMBER'].data), iterable_len=len(unmatched_sci_flag0), 
                         progress_bar=True, progress_bar_style='rich')
+    
+    logger.info('\t Number of unmatched sources in SCI global: {}'.format(len(unmatched_sci_global)))
+    logger.info('\t Number of unmatched sources in SCI global (FLAGS=0): {}'.format(len(unmatched_sci_global_flag0)) )
+    logger.info('\t Applying mask for unmatched sources in SCI global (using {} CPUs)'.format(ncpu))
+    func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_sci_global.astype(int))
+    _ = pool.map(func, iter(unmatched_sci_global_flag0['NUMBER'].data), iterable_len=len(unmatched_sci_global_flag0), 
+                        progress_bar=True, progress_bar_style='rich')
+    
     pool.join()    
 
 
@@ -691,14 +963,27 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     matched_sci_magdiff = matched_sci[mask_flags0 & mask_magdiff].copy()
     matched_ref_magdiff = matched_ref[mask_flags0 & mask_magdiff].copy()
     
+    mask_flags0_global = (matched_sci_global['FLAGS'] == 0) & (matched_ref_global['FLAGS'] == 0)
+    mask_magdiff_global = np.abs(matched_sci_global['MAG_AUTO'] - matched_ref_global['MAG_AUTO']) > 1
+    matched_sci_magdiff_global = matched_sci_global[mask_flags0_global & mask_magdiff_global].copy()
+    matched_ref_magdiff_global = matched_ref_global[mask_flags0_global & mask_magdiff_global].copy()
+    
     logger.info('\t Number of matched sources with |diff(MAG_AUTO)| > 1: {}'.format(mask_magdiff.sum()))
     logger.info('\t Number of matched sources with |diff(MAG_AUTO)| > 1 (FLAGS=0): {}'.format(len(matched_sci_magdiff)) )
+    
+    logger.info('\t Number of matched sources in global catalogs with |diff(MAG_AUTO)| > 1: {}'.format(mask_magdiff_global.sum()))
+    logger.info('\t Number of matched sources in global catalogs with |diff(MAG_AUTO)| > 1 (FLAGS=0): {}'.format(len(matched_sci_magdiff_global)) )
 
     logger.info('\t Applying magdiff mask (using {} CPUs)'.format(ncpu))
     pool = WorkerPool(n_jobs=ncpu)    
     func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_sci.astype(int))
     _ = pool.map(func, iter(matched_sci_magdiff['NUMBER'].data), iterable_len=len(matched_sci_magdiff), 
                             progress_bar=True, progress_bar_style='rich')
+    
+    func = partial(apply_mask_total, mask_flat=sfft_mask_shared, sexseg=seg_sci_global.astype(int))
+    _ = pool.map(func, iter(matched_sci_magdiff_global['NUMBER'].data), iterable_len=len(matched_sci_magdiff_global), 
+                            progress_bar=True, progress_bar_style='rich')
+    
     pool.join()    
     
     
@@ -712,11 +997,17 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     # pool.join()
 
     del catdat_ref, catdat_sci
+    del catdat_ref_global, catdat_sci_global
     del matched_ref, matched_sci
+    del matched_ref_global, matched_sci_global
     del unmatched_ref, unmatched_sci
+    del unmatched_ref_global, unmatched_sci_global
     del unmatched_ref_flag0, unmatched_sci_flag0
+    del unmatched_ref_global_flag0, unmatched_sci_global_flag0
     del matched_ref_magdiff, matched_sci_magdiff
+    del matched_ref_magdiff_global, matched_sci_magdiff_global
     del mask_flags0, mask_magdiff
+    del mask_flags0_global, mask_magdiff_global
 
 
     #Get mask
@@ -734,6 +1025,7 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         
 
     del seg_ref, seg_sci
+    del seg_ref_global, seg_sci_global
     del im1, im2
     del im_ref_cc, im_sci_cc
     del sfft_mask, sfft_mask_shared
