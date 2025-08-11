@@ -17,6 +17,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy.wcs import WCS
 from astropy.nddata import Cutout2D
+from astropy.stats import sigma_clipped_stats
 
 
 
@@ -548,6 +549,8 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     with fits.open(fname_sci_maskin) as hdul:
         im_msci = hdul[0].data.astype(bool)
         
+    im_mtot = im_mref | im_msci
+        
     logger.info('\t Number of objects in REF catalog: {}'.format(len(catdat_ref)))
     logger.info('\t Number of objects in SCI catalog: {}'.format(len(catdat_sci)))
     
@@ -614,13 +617,26 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         
     #Get background stddev in cross-convolved images 
     logger.info('Getting background stddev in cross-convolved images')       
-    bkgstd_ref = np.nanstd(im_ref_cc[seg_ref == 0])
-    bkgstd_sci = np.nanstd(im_sci_cc[seg_sci == 0])
+    # bkgstd_ref = np.nanstd(im_ref_cc[(seg_ref == 0) & (~im_mtot)])
+    # bkgstd_sci = np.nanstd(im_sci_cc[(seg_sci == 0) & (~im_mtot)])
     
-    bkgstd_ref = np.min([bkgstd_ref, bkgstd_ref_global])
-    bkgstd_sci = np.min([bkgstd_sci, bkgstd_sci_global])
-    logger.info('\t REF background stddev: {:.2e}'.format(bkgstd_ref))
-    logger.info('\t SCI background stddev: {:.2e}'.format(bkgstd_sci))
+    _, _, bkgstd_ref = sigma_clipped_stats(im_ref_cc, sigma=3.0, maxiters=None, mask=(im_mtot | (seg_ref > 0)) )
+    _, _, bkgstd_sci = sigma_clipped_stats(im_sci_cc, sigma=3.0, maxiters=None, mask=(im_mtot | (seg_sci > 0)) )
+    logger.info('\t Local REF background stddev: {:.2e}'.format(bkgstd_ref))
+    logger.info('\t Local SCI background stddev: {:.2e}'.format(bkgstd_sci))
+    
+    
+    if bkgstd_ref_global < bkgstd_ref:
+        logger.info('\t Using global REF background stddev')
+        bkgstd_ref = bkgstd_ref_global
+    else:
+        logger.info('\t Using local REF background stddev')
+        
+    if bkgstd_sci_global < bkgstd_sci:
+        logger.info('\t Using global SCI background stddev')
+        bkgstd_sci = bkgstd_sci_global
+    else:
+        logger.info('\t Using local SCI background stddev')    
     
     
     #Get rid of saturated stars
@@ -628,8 +644,8 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     
     #Use global catalogs for bright sources, local catalogs for dimmer ones    
         #Bright (f_aper > 30)
-    bad_mask_r_global = ((catdat_ref_global['FLUX_APER'] > 45) | (catdat_ref_global['MAG_AUTO'] < 17)) & (catdat_ref_global['CLASS_STAR'] > .9)
-    bad_mask_s_global = ((catdat_sci_global['FLUX_APER'] > 45) | (catdat_sci_global['MAG_AUTO'] < 17)) & (catdat_sci_global['CLASS_STAR'] > .9)
+    bad_mask_r_global = (   (catdat_ref_global['FLUX_APER'] > 45) & (catdat_ref_global['FLUX_APER'] < 150 ) & (catdat_ref_global['CLASS_STAR'] > .9)   )  |  ( (catdat_ref_global['FLUX_APER'] > 150) & (catdat_ref_global['CLASS_STAR'] > .7) )
+    bad_mask_s_global = (   (catdat_sci_global['FLUX_APER'] > 45) & (catdat_sci_global['FLUX_APER'] < 150 ) & (catdat_sci_global['CLASS_STAR'] > .9)   )  |  ( (catdat_sci_global['FLUX_APER'] > 150) & (catdat_sci_global['CLASS_STAR'] > .7) )
         #Dim (f_aper < 30)
     bad_mask_r = ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) ) #| (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 45) ) )
     bad_mask_s = ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) ) #| (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 45) ) )      

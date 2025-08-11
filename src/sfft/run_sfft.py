@@ -467,6 +467,16 @@ Saturation SCI: {:.2e}
     ##############################################################
     #Make SFFT mask
     
+    logfile = maindir + 'sfft.log'
+    _, logger = setup_logger('NVP.sfft.makemask', logfile)
+    logger.info('Running SExtractor on whole image')
+    sfftm.make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
+                    skysub, conv_ref, conv_sci, logger, sat_ref, sat_sci, 
+                    np.inf, np.inf, global_fit=True, 
+                    ra=None, dec=None, npx_side=None, ncpu=ncpu)
+    logger.info('Finished running SExtractor on whole image')
+    reset_logger(logger)
+
     #Get global background stddev in cross-convolved images
     if cutout_run and (not cutout_together) and pp_separate:
         bkgstd_ref_global = np.inf
@@ -503,8 +513,6 @@ Saturation SCI: {:.2e}
             with fits.open(fname_sci_cc) as hdul:
                 im_s = hdul[0].data.copy()
                 
-                
-                
             fname_mref = maindir + 'input/{}.maskin.fits'.format(ref_name)
             fname_msci = maindir + 'input/{}.maskin.fits'.format(sci_name)
             with fits.open(fname_mref) as hdul:
@@ -513,13 +521,21 @@ Saturation SCI: {:.2e}
                 mask_s = hdul[0].data.astype(bool)
                 
             mask_all = mask_r | mask_s
-                
-            _, _, bkgstd_ref_global = sigma_clipped_stats(im_r, sigma=3.0, maxiters=None, mask=mask_all)
+
+            fname_sexseg_r = maindir + 'mask/{}_sexseg.fits'.format(ref_name)
+            fname_sexseg_s = maindir + 'mask/{}_sexseg.fits'.format(sci_name)
+            with fits.open(fname_sexseg_r) as hdul:
+                segmap_r = hdul[0].data.astype(int)
+            with fits.open(fname_sexseg_s) as hdul:
+                segmap_s = hdul[0].data.astype(int)
+            
+            _, _, bkgstd_ref_global = sigma_clipped_stats(im_r, sigma=3.0, maxiters=None, mask=(mask_all | (segmap_r > 0)) )
             logger.info('Global background stddev in cross-convolved REF image: {:.2e}'.format(bkgstd_ref_global))
             
-            _, _, bkgstd_sci_global = sigma_clipped_stats(im_s, sigma=3.0, maxiters=None, mask=mask_all)
+            _, _, bkgstd_sci_global = sigma_clipped_stats(im_s, sigma=3.0, maxiters=None, mask=(mask_all | (segmap_s > 0)) )
             logger.info('Global background stddev in cross-convolved SCI image: {:.2e}'.format(bkgstd_sci_global)) 
             
+            del segmap_r, segmap_s
             del im_r, im_s, mask_r, mask_s, mask_all     
             
             reset_logger(logger)
@@ -532,17 +548,6 @@ Saturation SCI: {:.2e}
         else:
             bkgstd_ref_global = np.inf
             bkgstd_sci_global = np.inf
-            
-            
-    logfile = maindir + 'sfft.log'
-    _, logger = setup_logger('NVP.sfft.makemask', logfile)
-    logger.info('Running SExtractor on whole image')
-    sfftm.make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
-                    skysub, conv_ref, conv_sci, logger, sat_ref, sat_sci, 
-                    bkgstd_ref_global, bkgstd_sci_global, global_fit=True, 
-                    ra=None, dec=None, npx_side=None, ncpu=ncpu)
-    logger.info('Finished running SExtractor on whole image')
-    reset_logger(logger)
         
     
     if cutout_run and (not cutout_together):

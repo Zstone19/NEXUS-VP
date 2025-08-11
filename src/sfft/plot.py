@@ -140,6 +140,8 @@ def summary_plot(maindir, ref_name, sci_name,
     
     fname_satcat_r = maskdir + '{}_saturated_sources.cat'.format(ref_name)
     fname_satcat_s = maskdir + '{}_saturated_sources.cat'.format(sci_name)
+    fname_satcat_rg = maskdir + '{}_saturated_sources_bright.cat'.format(ref_name)
+    fname_satcat_sg = maskdir + '{}_saturated_sources_bright.cat'.format(sci_name)
 
     fname_diff = outdir + '{}.sfftdiff.fits'.format(sci_name)
     fname_diff_decorr = outdir + '{}.sfftdiff.decorr.fits'.format(sci_name)
@@ -182,7 +184,9 @@ def summary_plot(maindir, ref_name, sci_name,
     
     if show_sat_sources:
         catdat_sat_r = Table.read(fname_satcat_r)
-        catdat_sat_s = Table.read(fname_satcat_s)        
+        catdat_sat_s = Table.read(fname_satcat_s)  
+        catdat_sat_rg = Table.read(fname_satcat_rg)
+        catdat_sat_sg = Table.read(fname_satcat_sg)      
 
     try:
         im_diff = fits.getdata(fname_diff, ext=0)
@@ -298,22 +302,15 @@ def summary_plot(maindir, ref_name, sci_name,
             
             
         if show_sat_sources:
-            for i in range(len(catdat_sat_r)):
-                ra = catdat_sat_r['ALPHA_J2000'][i]
-                dec = catdat_sat_r['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_l[1,0].add_patch(circ)
+            for cat in [catdat_sat_r, catdat_sat_s, catdat_sat_rg, catdat_sat_sg]:            
+                for i in range(len(cat)):
+                    ra = cat['ALPHA_J2000'][i]
+                    dec = cat['DELTA_J2000'][i]
+                    coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
+                    px = skycoord_to_pixel(coord, wcs_ref)
+                    circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
+                    ax_l[1,0].add_patch(circ)
                 
-            for i in range(len(catdat_sat_s)):
-                ra = catdat_sat_s['ALPHA_J2000'][i]
-                dec = catdat_sat_s['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_l[1,0].add_patch(circ)
-        
     else:
         ax_l[1,0].axis('off')
         
@@ -330,22 +327,15 @@ def summary_plot(maindir, ref_name, sci_name,
             
             
         if show_sat_sources:
-            for i in range(len(catdat_sat_r)):
-                ra = catdat_sat_r['ALPHA_J2000'][i]
-                dec = catdat_sat_r['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_l[1,1].add_patch(circ)
-                
-            for i in range(len(catdat_sat_s)):
-                ra = catdat_sat_s['ALPHA_J2000'][i]
-                dec = catdat_sat_s['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_l[1,1].add_patch(circ)
-            
+            for cat in [catdat_sat_r, catdat_sat_s, catdat_sat_rg, catdat_sat_sg]:            
+                for i in range(len(cat)):
+                    ra = cat['ALPHA_J2000'][i]
+                    dec = cat['DELTA_J2000'][i]
+                    coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
+                    px = skycoord_to_pixel(coord, wcs_ref)
+                    circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
+                    ax_l[1,1].add_patch(circ)
+
     else:
         ax_l[1,1].axis('off')
 
@@ -498,42 +488,28 @@ def summary_plot(maindir, ref_name, sci_name,
         
         
         if show_sat_sources:
-            for i in range(len(catdat_sat_r)):
-                ra = catdat_sat_r['ALPHA_J2000'][i]
-                dec = catdat_sat_r['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_r[0,0].add_patch(circ)
-                
-            for i in range(len(catdat_sat_s)):
-                ra = catdat_sat_s['ALPHA_J2000'][i]
-                dec = catdat_sat_s['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_r[0,0].add_patch(circ)
+            for cat in [catdat_sat_r, catdat_sat_s, catdat_sat_rg, catdat_sat_sg]:            
+                for i in range(len(cat)):
+                    ra = cat['ALPHA_J2000'][i]
+                    dec = cat['DELTA_J2000'][i]
+                    coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
+                    px = skycoord_to_pixel(coord, wcs_ref)
+                    circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
+                    ax_r[0,0].add_patch(circ)
 
     if ~np.all(np.isnan(im_diff_decorr)):
         norm = ImageNormalize(im_diff_decorr, interval=ZScaleInterval())
         ax_r[0,1].imshow(im_diff_decorr, cmap=cmap, norm=norm, origin='lower', aspect='auto')
         
         if show_sat_sources:
-            for i in range(len(catdat_sat_r)):
-                ra = catdat_sat_r['ALPHA_J2000'][i]
-                dec = catdat_sat_r['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_r[0,1].add_patch(circ)
-                
-            for i in range(len(catdat_sat_s)):
-                ra = catdat_sat_s['ALPHA_J2000'][i]
-                dec = catdat_sat_s['DELTA_J2000'][i]
-                coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
-                px = skycoord_to_pixel(coord, wcs_ref)
-                circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
-                ax_r[0,1].add_patch(circ)
+            for cat in [catdat_sat_r, catdat_sat_s, catdat_sat_rg, catdat_sat_sg]:            
+                for i in range(len(cat)):
+                    ra = cat['ALPHA_J2000'][i]
+                    dec = cat['DELTA_J2000'][i]
+                    coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
+                    px = skycoord_to_pixel(coord, wcs_ref)
+                    circ = plt.Circle((px[0], px[1]), 20, color='r', fill=False, lw=1)
+                    ax_r[0,1].add_patch(circ)
 
 
     if ~np.all(np.isnan(im_diff_decorr_snr)):

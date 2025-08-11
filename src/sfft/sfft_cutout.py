@@ -1097,9 +1097,12 @@ def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_bounda
     """
 
     #Need to take into account that gkerhw pixels from the edge of the image are masked
-    #So overlap the cutouts by gkerhw pixels        
-    
+    #So overlap the cutouts by gkerhw (or more) pixels        
+
     npx_boundary = 30
+
+    #Cutouts will be npx_side by npx_side px, but will overlap by npx_boundary pixels on each side
+    npx_side -= int(2 * npx_boundary)
 
     ra_vals = []
     dec_vals = []
