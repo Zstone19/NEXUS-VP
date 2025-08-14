@@ -12,6 +12,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.nddata import Cutout2D
 from astropy.stats import sigma_clipped_stats
+from astropy.convolution import convolve_fft
 
 import toml
 from mpire import WorkerPool
@@ -470,10 +471,9 @@ Saturation SCI: {:.2e}
     logfile = maindir + 'sfft.log'
     _, logger = setup_logger('NVP.sfft.makemask', logfile)
     logger.info('Running SExtractor on whole image')
-    sfftm.make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
-                    skysub, conv_ref, conv_sci, logger, sat_ref, sat_sci, 
-                    np.inf, np.inf, global_fit=True, 
-                    ra=None, dec=None, npx_side=None, ncpu=ncpu)
+    sfftm.initial_global_fit(maindir, paramdir, 
+                            ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
+                            skysub, logger, ncpu=ncpu)
     logger.info('Finished running SExtractor on whole image')
     reset_logger(logger)
 
@@ -501,18 +501,25 @@ Saturation SCI: {:.2e}
             if conv_ref:
                 fname_ref_cc = maindir + 'output/{}.crossconvd.fits'.format(ref_name)
             else:
-                fname_ref_cc = maindir + 'output/{}.fits'.format(ref_name)
+                if skysub:
+                    fname_ref_cc = maindir + 'output/{}.skysub.fits'.format(ref_name)
+                else:
+                    fname_ref_cc = maindir + 'output/{}.fits'.format(ref_name)
                 
             if conv_sci:
                 fname_sci_cc = maindir + 'output/{}.crossconvd.fits'.format(sci_name)
             else:
-                fname_sci_cc = maindir + 'output/{}.fits'.format(sci_name)
-                
+                if skysub:
+                    fname_sci_cc = maindir + 'output/{}.skysub.fits'.format(sci_name)
+                else:
+                    fname_sci_cc = maindir + 'output/{}.fits'.format(sci_name)
+    
+            
             with fits.open(fname_ref_cc) as hdul:
-                im_r = hdul[0].data.copy()
+                im_ref_cc = hdul[0].data.copy()
             with fits.open(fname_sci_cc) as hdul:
-                im_s = hdul[0].data.copy()
-                
+                im_sci_cc = hdul[0].data.copy()
+                                
             fname_mref = maindir + 'input/{}.maskin.fits'.format(ref_name)
             fname_msci = maindir + 'input/{}.maskin.fits'.format(sci_name)
             with fits.open(fname_mref) as hdul:
@@ -528,22 +535,19 @@ Saturation SCI: {:.2e}
                 segmap_r = hdul[0].data.astype(int)
             with fits.open(fname_sexseg_s) as hdul:
                 segmap_s = hdul[0].data.astype(int)
+                            
             
-            _, _, bkgstd_ref_global = sigma_clipped_stats(im_r, sigma=3.0, maxiters=None, mask=(mask_all | (segmap_r > 0)) )
+            _, _, bkgstd_ref_global = sigma_clipped_stats(im_ref_cc, sigma=3.0, maxiters=None, mask=(mask_all | (segmap_r > 0)) )
             logger.info('Global background stddev in cross-convolved REF image: {:.2e}'.format(bkgstd_ref_global))
-            
-            _, _, bkgstd_sci_global = sigma_clipped_stats(im_s, sigma=3.0, maxiters=None, mask=(mask_all | (segmap_s > 0)) )
+
+            _, _, bkgstd_sci_global = sigma_clipped_stats(im_sci_cc, sigma=3.0, maxiters=None, mask=(mask_all | (segmap_s > 0)) )
             logger.info('Global background stddev in cross-convolved SCI image: {:.2e}'.format(bkgstd_sci_global)) 
             
             del segmap_r, segmap_s
-            del im_r, im_s, mask_r, mask_s, mask_all     
+            del mask_r, mask_s, mask_all
+            del im_ref_cc, im_sci_cc
             
             reset_logger(logger)
-        
-            # #Wide Ep 01
-            # bkgstd_ref_global = 7.13e-5
-            # #Deep Ep 01
-            # bkgstd_sci_global = 1.44e-4
             
         else:
             bkgstd_ref_global = np.inf
@@ -565,7 +569,7 @@ Saturation SCI: {:.2e}
             logger_i.info('Making SFFT mask')
             sfftm.make_mask(maindir_i, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
                             skysub, conv_ref, conv_sci, logger_i, sat_ref, sat_sci, 
-                            bkgstd_ref_global, bkgstd_sci_global, global_fit=False, 
+                            bkgstd_ref_global, bkgstd_sci_global, 
                             ra=ras[i], dec=decs[i], npx_side=(n0_vals[i], n1_vals[i]), ncpu=ncpu)
             logger_i.info('Finished making SFFT mask')
             
@@ -577,7 +581,7 @@ Saturation SCI: {:.2e}
         logger.info('Making SFFT mask')
         sfftm.make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
                         skysub, conv_ref, conv_sci, logger, sat_ref, sat_sci, 
-                        bkgstd_ref_global, bkgstd_sci_global, global_fit=False, 
+                        bkgstd_ref_global, bkgstd_sci_global,
                         ra=None, dec=None, npx_side=None, ncpu=ncpu)
         logger.info('Finished making SFFT mask')
         

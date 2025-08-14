@@ -96,6 +96,9 @@ def get_mag_zp(fname_data, channel):
     if 'MAGZERO' in hdr.keys():
         return hdr['MAGZERO']
     
+    elif 'MAG_ZP' in hdr.keys():
+        return hdr['MAG_ZP']
+    
     elif channel in ['SW', 'LW']:
         PIXAR_SR = hdr['PIXAR_SR']  # Nominal pixel area in steradians
         mag_zp = -2.5 * np.log10(PIXAR_SR * 1e6) + 8.9
@@ -153,9 +156,303 @@ def check_nsig_bkg(ind, sexseg, bkgstd_mask_ind):
     return False
 
 
+    
+def initial_global_fit(maindir, paramdir, 
+              ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
+              skysub, logger, ncpu=1):
+    
+    """Make the masks for SFFT to use. This mask is a binary one, with 1 for the pixels to be used and 0 for the pixels to be masked.
+    This requires the cross-convolved images, noise images, and input image masks. The masks will be output as {ref_name}.mask4sfft.fits
+    and {sci_name}.mask4sfft.fits in the mask/ directory.
+    
+    
+    The mask will reject pixels that:
+     - Are background pixels (from the SExtractor segmentation image)
+     - Only exist in one image (from the SExtractor catalogs) AND
+     - Have FLAGS == 0 in either SExtractor catalog AND
+     - Have a value < 3*stddev of the background in either one of the cross-convolved images OR
+     - Have a difference in MAG_AUTO > 1 between the reference and science images
+     
+     The mask will also reject pixels contained in saturated stars or other saturated sources.
+     
+    
+    
+    Arguments:
+    ----------
+    maindir : str
+        The main directory for the sfft section of the NEXUS Variability Pipeline
+    paramdir : str
+        The directory containing the SExtractor configuration files
+    ref_name : str
+        The name of the reference image
+    sci_name : str
+        The name of the science image
+    filtername_ref : str
+        The name of the filter used for the REF image
+    filtername_sci : str
+        The name of the filter used for the SCI image
+    filtername_grid : str
+        The name of the filter used for the grid in both images
+    skysub : bool
+        Whether the input images have been sky-subtracted
+    conv_ref : bool
+        Whether the reference image has been cross-convolved
+    conv_sci : bool
+        Whether the science image has been cross-convolved
+    logger : logging.Logger
+        The logger to use for logging
+    saturation_ref : float
+        The saturation value for the reference image. Default is 0.01.
+    saturation_sci : float
+        The saturation value for the science image. Default is 0.01.
+    bkgstd_ref_global : float
+        The global background standard deviation for the reference image. Default is np.inf.
+    bkgstd_sci_global : float
+        The global background standard deviation for the science image. Default is np.inf.
+    global_fit : bool
+        Whether to perform a global fit or not. Default is False. If True, will not create a 
+        mask, just run SExtractor.
+    ncpu : int
+        The number of CPUs to use for SExtractor. Default is 1.
+    
+    
+    Returns:
+    -------
+    None
+
+    """
+    
+    sex_path = 'sex'
+    
+    #Define directories
+    indir = maindir + 'input/'
+    psfdir = maindir + 'psf/'
+    noisedir = maindir + 'noise/'
+    outdir = maindir + 'mask/'
+    
+    if 'output' in maindir:
+        maindir_global = '/'.join( maindir.split('/')[:-2] ) + '/'
+    else:
+        maindir_global = maindir
+        
+    maskdir_global = maindir_global + 'mask/'
+        
+    
+    
+    #Define file names
+    if skysub:
+        fname_ref = indir + '{}.skysub.fits'.format(ref_name)
+        fname_sci = indir + '{}.skysub.fits'.format(sci_name)  
+    else:
+        fname_ref = indir + '{}.fits'.format(ref_name)
+        fname_sci = indir + '{}.fits'.format(sci_name)
+
+    
+    fname_ref_maskin = indir + '{}.maskin.fits'.format(ref_name)
+    fname_sci_maskin = indir + '{}.maskin.fits'.format(sci_name)
+    
+    fname_ref_noise = noisedir + '{}.noise.fits'.format(ref_name)
+    fname_sci_noise = noisedir + '{}.noise.fits'.format(sci_name)
+            
+    ########################################################################################################################################################
+    #Run SExtractor
+
+    #Get channel and pixel scale
+    filtername_ref = filtername_ref.upper()    
+    if filtername_ref in SW.keys():
+        channel_ref = 'SW'
+        # ps_in_ref = .031    #arcsec/px
+    elif filtername_ref in LW.keys():
+        channel_ref = 'LW'
+        # ps_in_ref = .063   #arcsec/px
+    elif filtername_ref in EUCLID.keys():
+        channel_ref = 'euclid'
+        # ps_in_ref = .1     #arcsec/px
+        
+        fname_psf = psfdir + '{}.psf.fits'.format(ref_name)
+        
+    else:
+        logger.error('Input REF filter name not part of NIRCam/Euclid')
+        raise ValueError
+    
+    logger.info('Input REF channel: {}'.format(channel_ref))    
+    
+    
+    filtername_sci = filtername_sci.upper()    
+    if filtername_sci in SW.keys():
+        channel_sci = 'SW'
+        # ps_in_sci = .031    #arcsec/px
+    elif filtername_sci in LW.keys():
+        channel_sci = 'LW'
+        # ps_in_sci = .063   #arcsec/px
+    elif filtername_sci in EUCLID.keys():
+        channel_sci = 'euclid'
+        # ps_in_sci = .1     #arcsec/px
+        
+        fname_psf = psfdir + '{}.psf.fits'.format(sci_name)
+        
+    else:
+        logger.error('Input SCI filter name not part of NIRCam/Euclid')
+        raise ValueError
+    
+
+    logger.info('Input SCI channel: {}'.format(channel_sci))    
+
+    filtername_grid = filtername_grid.upper()
+    # if filtername_grid in SW.keys():
+    #     ps_grid = .031
+    # elif filtername_grid in LW.keys():
+    #     ps_grid = .063
+    # elif filtername_grid in EUCLID.keys():
+    #     ps_grid = .1
+    
+    
+    
+    gauss_fname = 'gauss_4.0_7x7.conv'
+    
+    #Move config files
+    logger.info('Copying config files to {}'.format(outdir))
+    shutil.copy(paramdir + 'default.sex', outdir)
+    shutil.copy(paramdir + gauss_fname, outdir)
+    shutil.copy(paramdir + 'default.nnw', outdir)
+    shutil.copy(paramdir + 'default_{}.param'.format(channel_ref), outdir + 'default_ref.param')
+    shutil.copy(paramdir + 'default_{}.param'.format(channel_sci), outdir + 'default_sci.param')
+    
+    with open(paramdir + 'default.sex', 'r') as f:
+        content_ref = f.readlines()
+    with open(paramdir + 'default.sex', 'r') as f:
+        content_sci = f.readlines()
+
+
+    #Get zeropoints
+    logger.info('Getting zeropoints for input images')
+    mag_zp_ref = get_mag_zp(fname_ref, channel_ref)
+    mag_zp_sci = get_mag_zp(fname_sci, channel_sci)
+    logger.info('\t REF zeropoint: {:.3f}'.format(mag_zp_ref))
+    logger.info('\t SCI zeropoint: {:.3f}'.format(mag_zp_sci))
+
+    ########################################################################
+    #Write REF SExtractor param file
+
+    with fits.open(fname_ref) as hdul:
+        ps_in_ref = hdul[0].header['CDELT1'] * 3600.    
+    with fits.open(fname_sci) as hdul:
+        ps_in_sci = hdul[0].header['CDELT1'] * 3600.
+        
+    logger.info('Input REF pixel scale: {} arcsec/px'.format(ps_in_ref))
+    logger.info('Input SCI pixel scale: {} arcsec/px'.format(ps_in_sci))
+
+    
+    if filtername_grid == filtername_ref:
+        ps_grid = ps_in_ref
+    elif filtername_grid == filtername_sci:
+        ps_grid = ps_in_sci
+
+    
+    if channel_ref in ['SW', 'LW']:
+        phot_aper = NIRCam_filter_FWHM_new[channel_ref][filtername_ref]*5*ps_in_ref/ps_grid
+        seeing_fwhm = NIRCam_filter_FWHM_new[channel_ref][filtername_ref] * ps_in_ref
+    elif channel_ref == 'euclid':
+        phot_aper = fwhm_px_ref * 5 * ps_in_ref / ps_grid
+        seeing_fwhm = fwhm_px_ref * ps_in_ref
+    
+    
+    logger.info('Writing SExtractor config file for REF')
+    
+    content_ref[6]   = 'CATALOG_NAME     {}              # name of the output catalog\n'.format(outdir + ref_name + '.cat')
+    content_ref[7]   = "CATALOG_TYPE     FITS_LDAC       # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,\n"
+    content_ref[9]   = "PARAMETERS_NAME  {}              # name of the file containing catalog contents\n".format(outdir + 'default_ref.param')
+    content_ref[14]  = "DETECT_MINAREA   5              # min. # of pixels above threshold\n"
+    content_ref[18]  = "DETECT_THRESH    1.0             # <sigmas> or <threshold>,<ZP> in mag.arcsec-2\n"
+    content_ref[19]  = "ANALYSIS_THRESH  1.0             # <sigmas> or <threshold>,<ZP> in mag.arcsec-2\n"
+    content_ref[22]  = "FILTER_NAME      {}              # name of the file containing the filter\n".format(outdir + gauss_fname)
+    content_ref[25]  = "DEBLEND_NTHRESH  64             # Number of deblending sub-thresholds\n"
+    content_ref[26]  = "DEBLEND_MINCONT  1e-3           # Minimum contrast parameter for deblending\n" 
+    
+    content_ref[38]  = 'WEIGHT_IMAGE     {}              # weight-map filename\n'.format(fname_ref_noise)
+    content_ref[44]  = 'FLAG_IMAGE       {}              # filename for an input FLAG-image\n'.format(fname_ref_maskin)
+
+    content_ref[55]  = "PHOT_APERTURES   {}              # MAG_APER aperture diameter(s) in pixels\n".format(phot_aper)  # 5 times FWHM
+    # content_ref[63]  = "SATUR_LEVEL      {}              # level (in ADUs) at which arises saturation\n".format(saturation_ref)
+    content_ref[66]  = 'MAG_ZEROPOINT    {}              # magnitude zero-point\n'.format(mag_zp_ref)
+    
+    content_ref[74]  = "SEEING_FWHM      {}              # stellar FWHM in arcsec\n".format(seeing_fwhm)    
+    content_ref[75]  = "STARNNW_NAME     {}              # Neural-Network_Weight table filename\n".format(outdir + 'default.nnw')
+    content_ref[81]  = "BACK_SIZE        64              # Background mesh: <size> or <width>,<height> default 64\n"
+
+    content_ref[95]  = 'CHECKIMAGE_NAME  {}              # Filename for the check-image\n'.format(outdir + '{}_sexseg.fits'.format(ref_name))
+    content_ref[122] = 'NTHREADS         {}              # 1 single thread\n'.format(ncpu)
+    # content_ref[131] = "PSF_NAME         {}              # File containing the PSF model\n".format(fname_psf_ref)
+
+    fname_ref_config = outdir + 'default_{}.sex'.format(ref_name)
+    with open(fname_ref_config, 'w') as f:
+        f.writelines(content_ref)
+        
+    #Run SExtractor for REF
+    if os.path.exists(outdir + '{}_sexseg.fits'.format(ref_name)) and os.path.exists(outdir + '{}.cat'.format(ref_name)):
+        logger.info('Found SExtractor output for REF, skipping')
+    else:    
+        logger.info('Running SExtractor for REF')
+        with open(maindir + 'sfft.log', 'a') as flog:
+            subprocess.run([sex_path, fname_ref, '-c', fname_ref_config], check=True, text=True, stdout=flog)
+        logger.info('Finished running SExtractor for REF')
+    
+    ########################################################################
+    #Write REF SExtractor param file
+    if channel_sci in ['SW', 'LW']:
+        phot_aper = NIRCam_filter_FWHM_new[channel_sci][filtername_sci]*5*ps_in_sci/ps_grid
+        seeing_fwhm = NIRCam_filter_FWHM_new[channel_sci][filtername_sci] * ps_in_sci
+    elif channel_sci == 'euclid':
+        phot_aper = fwhm_px_sci * 5 * ps_in_sci / ps_grid
+        seeing_fwhm = fwhm_px_sci * ps_in_sci
+    
+    
+    logger.info('Writing SExtractor config file for SCI')
+    
+    content_sci[6]   = 'CATALOG_NAME     {}              # name of the output catalog\n'.format(outdir + sci_name + '.cat')
+    content_sci[7]   = "CATALOG_TYPE     FITS_LDAC       # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,\n"
+    content_sci[9]   = "PARAMETERS_NAME  {}              # name of the file containing catalog contents\n".format(outdir + 'default_sci.param')
+    content_sci[14]  = "DETECT_MINAREA   5              # min. # of pixels above threshold\n"
+    content_sci[18]  = "DETECT_THRESH    1.0             # <sigmas> or <threshold>,<ZP> in mag.arcsec-2\n"
+    content_sci[19]  = "ANALYSIS_THRESH  1.0             # <sigmas> or <threshold>,<ZP> in mag.arcsec-2\n"
+    content_sci[22]  = "FILTER_NAME      {}              # name of the file containing the filter\n".format(outdir + gauss_fname)
+    content_sci[25]  = "DEBLEND_NTHRESH  64             # Number of deblending sub-thresholds\n"
+    content_sci[26]  = "DEBLEND_MINCONT  1e-3           # Minimum contrast parameter for deblending\n" 
+    
+    content_sci[38]  = 'WEIGHT_IMAGE     {}              # weight-map filename\n'.format(fname_sci_noise)
+    content_sci[44]  = 'FLAG_IMAGE       {}              # filename for an input FLAG-image\n'.format(fname_sci_maskin)
+
+    content_sci[55]  = "PHOT_APERTURES   {}              # MAG_APER aperture diameter(s) in pixels\n".format(phot_aper)  # 5 times FWHM
+    # content_sci[63]  = "SATUR_LEVEL      {}              # level (in ADUs) at which arises saturation\n".format(saturation_sci)
+    content_sci[66]  = 'MAG_ZEROPOINT    {}              # magnitude zero-point\n'.format(mag_zp_sci)
+    
+    content_sci[74]  = "SEEING_FWHM      {}              # stellar FWHM in arcsec\n".format(seeing_fwhm)
+    content_sci[75]  = "STARNNW_NAME     {}              # Neural-Network_Weight table filename\n".format(outdir + 'default.nnw')
+    content_ref[81]  = "BACK_SIZE        64              # Background mesh: <size> or <width>,<height> default 64\n"
+
+    content_sci[95]  = 'CHECKIMAGE_NAME  {}              # Filename for the check-image\n'.format(outdir + '{}_sexseg.fits'.format(sci_name))
+    content_sci[122] = 'NTHREADS         {}               # 1 single thread\n'.format(ncpu)
+    # content_sci[131] = "PSF_NAME         {}              # File containing the PSF model\n".format(fname_psf_sci)
+    
+    fname_sci_config = outdir + 'default_{}.sex'.format(sci_name)
+    with open(fname_sci_config, 'w') as f:
+        f.writelines(content_sci)
+
+    #Run SExtractor for REF
+    if os.path.exists(outdir + '{}_sexseg.fits'.format(sci_name)) and os.path.exists(outdir + '{}.cat'.format(sci_name)):
+        logger.info('Found SExtractor output for SCI, skipping')
+    else:    
+        logger.info('Running SExtractor for SCI')
+        with open(maindir + 'sfft.log', 'a') as f:
+            subprocess.run([sex_path, fname_sci, '-c', fname_sci_config], check=True, stdout=f)
+        logger.info('Finished running SExtractor for SCI')
+
+    return
+
+
 def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
               skysub, conv_ref, conv_sci, logger, saturation_ref=.01, saturation_sci=.01, 
-              bkgstd_ref_global=np.inf, bkgstd_sci_global=np.inf, global_fit=False, 
+              bkgstd_ref_global=np.inf, bkgstd_sci_global=np.inf,
               ra=None, dec=None, npx_side=None, ncpu=1):
     
     """Make the masks for SFFT to use. This mask is a binary one, with 1 for the pixels to be used and 0 for the pixels to be masked.
@@ -495,9 +792,6 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
         with open(maindir + 'sfft.log', 'a') as f:
             subprocess.run([sex_path, fname_sci, '-c', fname_sci_config], check=True, stdout=f)
         logger.info('Finished running SExtractor for SCI')
-        
-    if global_fit:
-        return
     
     ########################################################################################################################################################
     #Make mask
@@ -647,8 +941,8 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     bad_mask_r_global = (   (catdat_ref_global['FLUX_APER'] > 45) & (catdat_ref_global['FLUX_APER'] < 150 ) & (catdat_ref_global['CLASS_STAR'] > .9)   )  |  ( (catdat_ref_global['FLUX_APER'] > 150) & (catdat_ref_global['CLASS_STAR'] > .7) )
     bad_mask_s_global = (   (catdat_sci_global['FLUX_APER'] > 45) & (catdat_sci_global['FLUX_APER'] < 150 ) & (catdat_sci_global['CLASS_STAR'] > .9)   )  |  ( (catdat_sci_global['FLUX_APER'] > 150) & (catdat_sci_global['CLASS_STAR'] > .7) )
         #Dim (f_aper < 30)
-    bad_mask_r = ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) ) #| (catdat_ref['MAG_AUTO'] < 17) | (catdat_ref['FLUX_APER'] > 45) ) )
-    bad_mask_s = ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) ) #| (catdat_sci['MAG_AUTO'] < 17) | (catdat_sci['FLUX_APER'] > 45) ) )      
+    bad_mask_r = ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) )
+    bad_mask_s = ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) )
 
     #If there are bright sources in the local catalogs, but not in the global ones, put them in the local saturation catalogs
     bad_mask_r_local_bright = (catdat_ref['FLUX_APER'] > 45) | (catdat_ref['MAG_AUTO'] < 17)
@@ -664,7 +958,7 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     #Remove these from the local saturation catalogs
     fake_bright_mask_r = np.zeros(len(catdat_ref_local_bright), dtype=bool)
     fake_bright_mask_s = np.zeros(len(catdat_sci_local_bright), dtype=bool)
-    if len(catdat_ref_local_bright) > 0:
+    if (len(catdat_ref_local_bright) > 0) and (len(catdat_ref_global) > 0):
 
         for i in tqdm(  range(len(catdat_ref_local_bright))  ):
             coords_ref_local_bright = SkyCoord([catdat_ref_local_bright['ALPHA_J2000'][i]], [catdat_ref_local_bright['DELTA_J2000'][i]], unit=(u.deg, u.deg))
@@ -685,7 +979,7 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
                 fake_bright_mask_r[i] = True
                 
                 
-    if len(catdat_sci_local_bright) > 0:
+    if ( len(catdat_sci_local_bright) > 0 ) and (len(catdat_sci_global) > 0):
         for i in tqdm(  range(len(catdat_sci_local_bright))  ):
             coords_sci_local_bright = SkyCoord([catdat_sci_local_bright['ALPHA_J2000'][i]], [catdat_sci_local_bright['DELTA_J2000'][i]], unit=(u.deg, u.deg))
             idx, d2d, _ = coords_sci_local_bright.match_to_catalog_sky(coords_global_sci)

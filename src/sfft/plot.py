@@ -39,7 +39,7 @@ mpl.rcParams['savefig.format'] = 'pdf'
 def summary_plot(maindir, ref_name, sci_name, 
                  ref_title=None, sci_title=None,
                  show_fwhm=False, scalebar=True, show_stats=True,
-                 cutout_center=None, cutout_size=None, 
+                 cutout_center=None, cutout_size=None, npx_boundary=30,
                  skysub=False, conv_ref=False, conv_sci=False, show_sat_sources=False,
                  output_fname=None, show=False):
     """Make a summary plot of the SFFT outputs. Contains 8 panels:
@@ -93,7 +93,7 @@ def summary_plot(maindir, ref_name, sci_name,
     cmap.set_bad(color='DodgerBlue', alpha=0.5)
     
     cmap_snr = plt.get_cmap('coolwarm')
-    cmap_snr.set_bad(color='k', alpha=1)
+    cmap_snr.set_bad(color='w', alpha=1)
     
     
     indir = maindir + 'input/'
@@ -178,6 +178,9 @@ def summary_plot(maindir, ref_name, sci_name,
     im_mask_lref = fits.getdata(fname_mask_lref, ext=0).astype(bool)
     im_mask_lsci = fits.getdata(fname_mask_lsci, ext=0).astype(bool)
     im_mask_both = im_mask_lref | im_mask_lsci
+    
+    im_mask_boundary = np.ones(im_lref.shape, dtype=bool)
+    im_mask_boundary[npx_boundary:-npx_boundary, npx_boundary:-npx_boundary] = False
 
     im_cc_lref = fits.getdata(fname_cc_lref, ext=0)
     im_cc_lsci = fits.getdata(fname_cc_lsci, ext=0)
@@ -220,9 +223,9 @@ def summary_plot(maindir, ref_name, sci_name,
         decorr_sig10 = fits.getdata(fname_decorr_sig10, ext=0)
         decorr_sig100 = fits.getdata(fname_decorr_sig100, ext=0)
         mask = np.isnan(im_diff) | (im_lref == 0.) | (im_lsci == 0.)
-        decorr_bkg = decorr_bkg[(~mask) | im_mask_both | (decorr_bkg != 0.)].flatten()
-        decorr_sig10 = decorr_sig10[(~mask) | im_mask_both | (decorr_sig10 != 0.)].flatten()
-        decorr_sig100 = decorr_sig100[(~mask) | im_mask_both | (decorr_sig100 != 0.)].flatten()
+        decorr_bkg = decorr_bkg[(~mask) | im_mask_both | (decorr_bkg != 0.) | im_mask_boundary].flatten()
+        decorr_sig10 = decorr_sig10[(~mask) | im_mask_both | (decorr_sig10 != 0.) | im_mask_boundary].flatten()
+        decorr_sig100 = decorr_sig100[(~mask) | im_mask_both | (decorr_sig100 != 0.) | im_mask_boundary].flatten()
     
     #Get rid of NaNs
     im_diff[np.isnan(im_diff)] = np.nan
@@ -236,9 +239,9 @@ def summary_plot(maindir, ref_name, sci_name,
     im_lsci[im_mask_both] = np.nan
     im_cc_lref[im_mask_both] = np.nan
     im_cc_lsci[im_mask_both] = np.nan
-    im_diff[im_mask_both] = np.nan
-    im_diff_decorr[im_mask_both] = np.nan
-    im_diff_decorr_snr[im_mask_both] = np.nan
+    im_diff[im_mask_both | im_mask_boundary] = np.nan
+    im_diff_decorr[im_mask_both | im_mask_boundary] = np.nan
+    im_diff_decorr_snr[im_mask_both | im_mask_boundary] = np.nan
     
     im_diff_decorr[im_diff_decorr == 0.] = np.nan    
     im_diff_decorr_snr[im_diff_decorr_snr == 0.] = np.nan
