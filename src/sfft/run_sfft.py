@@ -556,24 +556,35 @@ Saturation SCI: {:.2e}
     
     if cutout_run and (not cutout_together):
 
-        for i in range(ncutout):
-            maindir_i = maindir + 'output_{}/'.format(cutout_names[i])
-            logfile_i = maindir_i + 'sfft.log'
+        fname_exist = np.zeros(ncutout, dtype=bool)
+        for i in range(len(cutout_names)):
+            cutout_name = cutout_names[i]
+            maindir_i = maindir + 'output_{}/'.format(cutout_name)
+            fname = maindir_i + 'mask/{}.mask4sfft.fits'.format(sci_name)
             
-            _, logger = setup_logger('NVP.sfft.makemask', logfile)
-            logger.info('Making SFFT mask for cutout {}/{}: {}'.format(i+1, ncutout, cutout_names[i]))
-            reset_logger(logger)
-            
-            _, logger_i = setup_logger('NVP.sfft.makemask', logfile_i)
-            
-            logger_i.info('Making SFFT mask')
-            sfftm.make_mask(maindir_i, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
-                            skysub, conv_ref, conv_sci, logger_i, sat_ref, sat_sci, 
-                            bkgstd_ref_global, bkgstd_sci_global, 
-                            ra=ras[i], dec=decs[i], npx_side=(n0_vals[i], n1_vals[i]), ncpu=ncpu)
-            logger_i.info('Finished making SFFT mask')
-            
-            reset_logger(logger_i)
+            if os.path.exists(fname):
+                fname_exist[i] = True
+        
+
+        if np.sum(~fname_exist) > 0:        
+            for i in range(ncutout):
+                maindir_i = maindir + 'output_{}/'.format(cutout_names[i])
+                logfile_i = maindir_i + 'sfft.log'
+                
+                _, logger = setup_logger('NVP.sfft.makemask', logfile)
+                logger.info('Making SFFT mask for cutout {}/{}: {}'.format(i+1, ncutout, cutout_names[i]))
+                reset_logger(logger)
+                
+                _, logger_i = setup_logger('NVP.sfft.makemask', logfile_i)
+                
+                logger_i.info('Making SFFT mask')
+                sfftm.make_mask(maindir_i, paramdir, ref_name, sci_name, filtername_ref, filtername_sci, filtername_grid, 
+                                skysub, conv_ref, conv_sci, logger_i, sat_ref, sat_sci, 
+                                bkgstd_ref_global, bkgstd_sci_global, 
+                                ra=ras[i], dec=decs[i], npx_side=(n0_vals[i], n1_vals[i]), ncpu=ncpu)
+                logger_i.info('Finished making SFFT mask')
+                
+                reset_logger(logger_i)
     
     else:
         _, logger = setup_logger('NVP.sfft.makemask', logfile)
@@ -592,38 +603,60 @@ Saturation SCI: {:.2e}
     
     if cutout_run and (not cutout_together):
 
-        #Mask
-        for i in range(ncutout):
-            maindir_i = maindir + 'output_{}/'.format(cutout_names[i])
-            logfile_i = maindir_i + 'sfft.log'
-            
-            _, logger = setup_logger('NVP.sfft.mask', logfile)
-            logger.info('Masking images for cutout {}/{}: {}'.format(i+1, ncutout, cutout_names[i]))
-            reset_logger(logger)
-            
-            _, logger_i = setup_logger('NVP.sfft.mask', logfile_i)
-            
-            logger_i.info('Masking images')
-            sfftu.mask_images(maindir_i, ref_name, sci_name, logger_i, skysub, conv_ref, conv_sci)
-            logger_i.info('Finished masking images')
-            
-            reset_logger(logger_i)
-            
-            
-        #Check number of objects in masked cross-convolved image
-        for i in range(ncutout):
+        fname_exist_r = np.zeros(ncutout, dtype=bool)
+        fname_exist_s = np.zeros(ncutout, dtype=bool)
+        for i in range(len(cutout_names)):
             cutout_name = cutout_names[i]
             maindir_i = maindir + 'output_{}/'.format(cutout_name)
-            logfile_i = maindir_i + 'sfft.log' 
             
-            _, logger = setup_logger('NVP.sfft.mask', logfile)
-            logger.info('Checking number of objects in masked image for cutout {}/{}: {}'.format(i+1, ncutout, cutout_name))
-            reset_logger(logger)
+            if conv_ref:
+                fname_r = maindir_i + 'output/{}.crossconvd.masked.fits'.format(sci_name)
+            else:
+                fname_r = maindir_i + 'output/{}.masked.fits'.format(sci_name)
+                
+            if conv_sci:
+                fname_s = maindir_i + 'output/{}.crossconvd.masked.fits'.format(ref_name)
+            else:
+                fname_s = maindir_i + 'output/{}.masked.fits'.format(ref_name)
             
-            _, logger_i = setup_logger('NVP.sfft.mask', logfile_i)
-            logger_i.info('Checking number of objects in masked image')
-            check_num_obj_maskedcc(maindir_i, ref_name, sci_name, logger_i, conv_ref, conv_sci)
-            reset_logger(logger_i)
+            if os.path.exists(fname_r):
+                fname_exist_r[i] = True
+            if os.path.exists(fname_s):
+                fname_exist_s[i] = True
+
+        if np.sum(~fname_exist_r) > 0 or np.sum(~fname_exist_s) > 0:
+            #Mask
+            for i in range(ncutout):
+                maindir_i = maindir + 'output_{}/'.format(cutout_names[i])
+                logfile_i = maindir_i + 'sfft.log'
+                
+                _, logger = setup_logger('NVP.sfft.mask', logfile)
+                logger.info('Masking images for cutout {}/{}: {}'.format(i+1, ncutout, cutout_names[i]))
+                reset_logger(logger)
+                
+                _, logger_i = setup_logger('NVP.sfft.mask', logfile_i)
+                
+                logger_i.info('Masking images')
+                sfftu.mask_images(maindir_i, ref_name, sci_name, logger_i, skysub, conv_ref, conv_sci)
+                logger_i.info('Finished masking images')
+                
+                reset_logger(logger_i)
+                
+                
+            #Check number of objects in masked cross-convolved image
+            for i in range(ncutout):
+                cutout_name = cutout_names[i]
+                maindir_i = maindir + 'output_{}/'.format(cutout_name)
+                logfile_i = maindir_i + 'sfft.log' 
+                
+                _, logger = setup_logger('NVP.sfft.mask', logfile)
+                logger.info('Checking number of objects in masked image for cutout {}/{}: {}'.format(i+1, ncutout, cutout_name))
+                reset_logger(logger)
+                
+                _, logger_i = setup_logger('NVP.sfft.mask', logfile_i)
+                logger_i.info('Checking number of objects in masked image')
+                check_num_obj_maskedcc(maindir_i, ref_name, sci_name, logger_i, conv_ref, conv_sci)
+                reset_logger(logger_i)
     
 
     else:    
@@ -925,47 +958,6 @@ Number of GPUs: {}
         _, logger = setup_logger('NVP.sfft.decorr', logfile)
         logger.info('Finished noise decorrelation')        
         reset_logger(logger)
-
-    
-    ##############################################################
-    # Get differential SNR map
-        
-    # run = sfft['decorr']['run_snr']
-    
-    # if run:
-    #     _, logger = setup_logger('NVP.sfft.diffsnr', logfile)
-        
-    #     mcmc_nsamp = sfft['decorr']['mcmc_nsamp']
-        
-    #     logger.info('Getting differential SNR map')
-    #     logger.info('\t Number of MCMC samples: {}'.format(mcmc_nsamp))
-    #     logger.info('\t Number of CPUs: {}'.format(ncpu))            
-        
-    #     if cutout_run:
-    #         for i in range(ncutout):
-    #             cutout_name = cutout_names[i]
-    #             maindir_i = maindir + 'output_{}/'.format(cutout_name)
-    #             logfile_i = maindir_i + 'sfft.log' 
-                
-    #             _, logger = setup_logger('NVP.sfft.diffsnr', logfile)
-    #             logger.info('Getting differential SNR map for cutout {}/{}: {}'.format(i+1, ncutout, cutout_name))
-    #             reset_logger(logger)
-                
-    #             _, logger_i = setup_logger('NVP.sfft.diffsnr', logfile_i)
-    #             sfftu.get_differential_snr(maindir_i, ref_name, sci_name, conv_ref, conv_sci, logger_i, mcmc_nsamp, ncpu)
-    #             reset_logger(logger_i)
-
-        
-    #     else:
-    #         _, logger = setup_logger('NVP.sfft.diffsnr', logfile)
-            
-    #         logger.info('Getting differential SNR map')
-    #         sfftu.get_differential_snr(maindir, ref_name, sci_name, conv_ref, conv_sci, logger, mcmc_nsamp, ncpu)
-    #         reset_logger(logger)
-        
-    #     _, logger = setup_logger('NVP.sfft.diffsnr', logfile)
-    #     logger.info('Finished getting differential SNR map')
-    #     reset_logger(logger)
 
     
     ##############################################################
