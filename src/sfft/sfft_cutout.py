@@ -1285,18 +1285,24 @@ def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_bounda
                 y2_vals[i] = y1_vals[i] + npx_side
 
     nnz_fracs = []
+    x1_vals_out = []
+    x2_vals_out = []
+    y1_vals_out = []
+    y2_vals_out = []
     for i in range(len(x1_vals)):
         n = i
         
         if (subset is not None) and (not (n in subset)):
             continue
     
+        #Actual edges of the cutout, including the boundary
         x1 = x1_vals[i] - npx_boundary
         x2 = x2_vals[i] + npx_boundary
 
         y1 = y1_vals[i] - npx_boundary
         y2 = y2_vals[i] + npx_boundary
 
+        #Make sure the cutout is within the image
         if x1 < 0:
             x1 = 0
         if y1 < 0:
@@ -1312,13 +1318,14 @@ def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_bounda
             continue
         
         assert im_sci[x1:x2, y1:y2].shape == im_ref[x1:x2, y1:y2].shape, "Reference and science images must have the same shape."
+        assert im_sci[x1:x2, y1:y2].shape == (x2-x1, y2-y1), "Cutout shape is incorrect."
 
             
         if (x2-x1 == 0) or (y2-y1 == 0):
             continue
         
-        xc = (x1 + x2) / 2.
-        yc = (y1 + y2) / 2.
+        xc = (x1 + x2) / 2. - 1
+        yc = (y1 + y2) / 2. - 1
         
         cutout_shape = np.array([x2-x1, y2-y1]) * u.pixel
         
@@ -1333,6 +1340,10 @@ def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_bounda
         col_inds.append(yc)
         shapes_x.append(x2-x1)
         shapes_y.append(y2-y1)
+        x1_vals_out.append(x1)
+        x2_vals_out.append(x2)
+        y1_vals_out.append(y1)
+        y2_vals_out.append(y2)
         numbers.append(n)
         
         outdir = maindir + 'output_{}/'.format(n)            
@@ -1357,6 +1368,9 @@ def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_bounda
             im_r = hdu_r.data
             cutout_r = Cutout2D(im_r, new_coords, cutout_shape, wcs=wcs)
             
+            # assert cutout_r.data.shape == (x2-x1, y2-y1), "Cutout shape is incorrect."
+            # assert cutout_r.data == im_r[x1:x2, y1:y2], "Cutout data does not match original image data."
+            
             hdu_r.data = cutout_r.data
             hdu_r.data[np.isnan(hdu_r.data)] = 0.                
             hdu_r.header.update(cutout_r.wcs.to_header())
@@ -1367,6 +1381,9 @@ def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_bounda
             hdu_s = hdul[0]
             im_s = hdu_s.data            
             cutout_s = Cutout2D(im_s, new_coords, cutout_shape, wcs=wcs) 
+            
+            # assert cutout_s.data.shape == (x2-x1, y2-y1), "Cutout shape is incorrect."
+            # assert cutout_s.data == im_s[x1:x2, y1:y2], "Cutout data does not match original image data."
                         
             hdu_s.data = cutout_s.data
             hdu_s.data[np.isnan(hdu_s.data)] = 0.    
@@ -1515,10 +1532,10 @@ def make_split_subdir_separate(npx_side, maindir, ref_name, sci_name, npx_bounda
         tab = Table()
         tab['RA'] = ra_vals
         tab['DEC'] = dec_vals
-        tab['ROW_INDEX'] = row_inds
-        tab['COL_INDEX'] = col_inds
-        tab['N0'] = shapes_x
-        tab['N1'] = shapes_y
+        tab['ROW1'] = x1_vals_out
+        tab['ROW2'] = x2_vals_out
+        tab['COL1'] = y1_vals_out
+        tab['COL2'] = y2_vals_out
         tab['FRAC_NNZ'] = nnz_fracs
         tab['LABEL'] = numbers
         tab.write(maindir + 'cutout_info.txt', format='ascii', overwrite=True)    

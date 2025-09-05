@@ -395,12 +395,12 @@ Saturation SCI: {:.2e}
                 sfftc.make_split_subdir_separate(cutout_npx, maindir, ref_name, sci_name, npx_boundary=npx_boundary, subset=subset, dither=cutout_dither, 
                                                  pp_separate=pp_separate, skysub=skysub, conv_ref=conv_ref, conv_sci=conv_sci)      
                 logger.info('\t Cutout file: {}'.format(cutout_fname))
-     
-            ras, decs, _, _, n0_vals, n1_vals, fracs_nnz, cutout_names = np.loadtxt(cutout_fname, dtype=object, unpack=True, skiprows=1) 
+
+            ras, decs, x1_vals, x2_vals, y1_vals, y2_vals, fracs_nnz, cutout_names = np.loadtxt(cutout_fname, dtype=object, unpack=True, skiprows=1)
             ras = np.atleast_1d(ras).astype(float)
             decs = np.atleast_1d(decs).astype(float)     
-            n0_vals = np.atleast_1d(n0_vals).astype(int)
-            n1_vals = np.atleast_1d(n1_vals).astype(int)                
+            n0_vals = np.atleast_1d(x2_vals.astype(int)-x1_vals.astype(int))
+            n1_vals = np.atleast_1d(y2_vals.astype(int)-y1_vals.astype(int))                
             cutout_names = np.atleast_1d(cutout_names).astype(str)
             fracs_nnz = np.atleast_1d(fracs_nnz).astype(float)
             ncutout = len(cutout_names)
