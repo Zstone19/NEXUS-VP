@@ -532,10 +532,13 @@ matching_radius = 0.1 #arcsec
 
 names = ['wide', 'deep']
 epochs = ['01', '01']
+bands = ['F200W', 'F444W']
 
 name_prefix = '{}{}_{}{}'.format(names[0], epochs[0], names[1], epochs[1])
 prefix1 = '{}{}'.format(names[0], epochs[0])
 prefix2 = '{}{}'.format(names[1], epochs[1])
+
+maindir = '/data6/stone28/nexus/'
 
 ################################################################################################################################################################################################################################
 ################################################################################################################################################################################################################################
@@ -553,8 +556,8 @@ print('Reading in data')
 # dat_f200w_sfft = combine_pos_neg(dat_f200w_sfft_p, dat_f200w_sfft_n, matching_radius=.1)
 # dat_f444w_sfft = combine_pos_neg(dat_f444w_sfft_p, dat_f444w_sfft_n, matching_radius=.1)
 
-dat_stack_f200w_sfft = Table.read('/data6/stone28/nexus/sfftsource_combined_nexus_{}/output_pos/nexus_F200W_sfftdiff_stack.cat'.format(name_prefix))
-dat_stack_f444w_sfft = Table.read('/data6/stone28/nexus/sfftsource_combined_nexus_{}/output_pos/nexus_F444W_sfftdiff_stack.cat'.format(name_prefix))
+dat_stack_f200w_sfft = Table.read(maindir + 'sfftsource_combined_nexus_{}/output_pos/nexus_{}_sfftdiff_stack.cat'.format(name_prefix, bands[0]))
+dat_stack_f444w_sfft = Table.read(maindir + 'sfftsource_combined_nexus_{}/output_pos/nexus_{}_sfftdiff_stack.cat'.format(name_prefix, bands[1]))
 
 
 #SUB
@@ -565,8 +568,8 @@ dat_stack_f444w_sfft = Table.read('/data6/stone28/nexus/sfftsource_combined_nexu
 # dat_f200w_sub = combine_pos_neg(dat_f200w_sub_p, dat_f200w_sub_n, matching_radius=.1)
 # dat_f444w_sub = combine_pos_neg(dat_f444w_sub_p, dat_f444w_sub_n, matching_radius=.1)
 
-dat_stack_f200w_sub = Table.read('/data6/stone28/nexus/subsource_combined_nexus_{}/output_pos/nexus_F200W_subdiff_stack.cat'.format(name_prefix))
-dat_stack_f444w_sub = Table.read('/data6/stone28/nexus/subsource_combined_nexus_{}/output_pos/nexus_F444W_subdiff_stack.cat'.format(name_prefix))
+dat_stack_f200w_sub = Table.read(maindir + 'subsource_combined_nexus_{}/output_pos/nexus_{}_subdiff_stack.cat'.format(name_prefix, bands[0]))
+dat_stack_f444w_sub = Table.read(maindir + 'subsource_combined_nexus_{}/output_pos/nexus_{}_subdiff_stack.cat'.format(name_prefix, bands[1]))
 
 
 assert (dat_stack_f200w_sfft['ALPHA_J2000'].data == dat_stack_f200w_sub['ALPHA_J2000'].data).all()
@@ -576,25 +579,25 @@ assert (dat_stack_f444w_sfft['ALPHA_J2000'].data == dat_stack_f444w_sub['ALPHA_J
 cat_nexus_wide = Table.read('/data3/web/nexus/edr/nircam/catalog/wide_ep1_01_src_catalog_v1.fits')
 
 indir = '/data4/jwst/nexus/reduced_data/SEXtractor/catalogs/'
-cat_nexus_widestack_f200w = Table.read(indir + 'nexus_full_{}_f200w_catalog.fits'.format(prefix1))
-cat_nexus_widestack_f444w = Table.read(indir + 'nexus_full_{}_f444w_catalog.fits'.format(prefix1))
-cat_nexus_deepstack_f200w = Table.read(indir + 'nexus_full_{}_f200w_catalog.fits'.format(prefix2))
-cat_nexus_deepstack_f444w = Table.read(indir + 'nexus_full_{}_f444w_catalog.fits'.format(prefix2))
+cat_nexus_widestack_f200w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix1, bands[0].lower()))
+cat_nexus_widestack_f444w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix1, bands[1].lower()))
+cat_nexus_deepstack_f200w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix2, bands[0].lower()))
+cat_nexus_deepstack_f444w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix2, bands[1].lower()))
 
 #Saturated sources
-satdat_f200w = Table.read('/data6/stone28/nexus/sfft_nexus_{}_F200W/output/nexus_{}_F200W.saturated_sources.combined.cat'.format(name_prefix, prefix2))
-satdat_f444w = Table.read('/data6/stone28/nexus/sfft_nexus_{}_F444W/output/nexus_{}_F444W.saturated_sources.combined.cat'.format(name_prefix, prefix2))
+satdat_f200w = Table.read(maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.saturated_sources.combined.cat'.format(name_prefix, bands[0], prefix2, bands[0]))
+satdat_f444w = Table.read(maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.saturated_sources.combined.cat'.format(name_prefix, bands[1], prefix2, bands[1]))
 
 #Empty cutouts/segmaps
-with fits.open('/data6/stone28/nexus/sfft_nexus_{}_F200W/output/nexus_{}_F200W.cutout_segmap.fits'.format(name_prefix, prefix2)) as hdul:
+with fits.open(maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.cutout_segmap.fits'.format(name_prefix, bands[0], prefix2, bands[0])) as hdul:
     segmap_f200w = hdul[0].data
     wcs_segmap_f200w = WCS(hdul[0].header)
-with fits.open('/data6/stone28/nexus/sfft_nexus_{}_F444W/output/nexus_{}_F444W.cutout_segmap.fits'.format(name_prefix, prefix2)) as hdul:
+with fits.open(maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.cutout_segmap.fits'.format(name_prefix, bands[1], prefix2, bands[1])) as hdul:
     segmap_f444w = hdul[0].data
     wcs_segmap_f444w = WCS(hdul[0].header)
 
-emptydat_f200w = Table.read('/data6/stone28/nexus/sfft_nexus_{}_F200W/output/empty_cutouts.txt'.format(name_prefix), format='ascii')
-emptydat_f444w = Table.read('/data6/stone28/nexus/sfft_nexus_{}_F444W/output/empty_cutouts.txt'.format(name_prefix), format='ascii')
+emptydat_f200w = Table.read(maindir + 'sfft_nexus_{}_{}/output/empty_cutouts.txt'.format(name_prefix, bands[0]), format='ascii')
+emptydat_f444w = Table.read(maindir + 'sfft_nexus_{}_{}/output/empty_cutouts.txt'.format(name_prefix, bands[1]), format='ascii')
 
 ################################################################################################################
 #COMBINE CATALOGS AND FIND SATURATED MASKED SOURCES  ###########################################################
@@ -603,8 +606,8 @@ emptydat_f444w = Table.read('/data6/stone28/nexus/sfft_nexus_{}_F444W/output/emp
 print('Combining catalogs with NEXUS catalogs')
 
 #Combine stacked with NEXUS
-dat_f200w_stacked = combine_refstack_nexus(dat_stack_f200w_sub, dat_stack_f200w_sfft, cat_nexus_wide, cat_nexus_widestack_f200w, cat_nexus_deepstack_f200w, band='F200W', matching_radius=matching_radius)
-dat_f444w_stacked = combine_refstack_nexus(dat_stack_f444w_sub, dat_stack_f444w_sfft, cat_nexus_wide, cat_nexus_widestack_f444w, cat_nexus_deepstack_f444w, band='F444W', matching_radius=matching_radius)
+dat_f200w_stacked = combine_refstack_nexus(dat_stack_f200w_sub, dat_stack_f200w_sfft, cat_nexus_wide, cat_nexus_widestack_f200w, cat_nexus_deepstack_f200w, band=bands[0], matching_radius=matching_radius)
+dat_f444w_stacked = combine_refstack_nexus(dat_stack_f444w_sub, dat_stack_f444w_sfft, cat_nexus_wide, cat_nexus_widestack_f444w, cat_nexus_deepstack_f444w, band=bands[1], matching_radius=matching_radius)
 
 #Combine stacked+diffonly
 # dat_f200w_sub_all = combine_stack_diffonly(dat_f200w_sub, dat_f200w_stacked, matching_radius=.5)
@@ -646,16 +649,16 @@ dat_f444w_stacked['SATURATED'] = match_mask
 ################################################################################################################
 print('Removing sources within image masks')
 
-fname_submask_f200w = '/data6/stone28/nexus/zogy_nexus_{}_F200W/output/nexus_{}_F200W.mask.fits'.format(name_prefix, prefix2)
-fname_submask_f444w = '/data6/stone28/nexus/zogy_nexus_{}_F444W/output/nexus_{}_F444W.mask.fits'.format(name_prefix, prefix2)
+fname_submask_f200w = maindir + 'zogy_nexus_{}_{}/output/nexus_{}_{}.mask.fits'.format(name_prefix, bands[0], prefix2, bands[0])
+fname_submask_f444w = maindir + 'zogy_nexus_{}_{}/output/nexus_{}_{}.mask.fits'.format(name_prefix, bands[1], prefix2, bands[1])
 
-fname_sfftmask_f200w = '/data6/stone28/nexus/sfft_nexus_{}_F200W/output/nexus_{}_F200W.sfftdiff.decorr.mask.combined.fits'.format(name_prefix, prefix2)
-fname_sfftmask_f444w = '/data6/stone28/nexus/sfft_nexus_{}_F444W/output/nexus_{}_F444W.sfftdiff.decorr.mask.combined.fits'.format(name_prefix, prefix2)
+fname_sfftmask_f200w = maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.sfftdiff.decorr.mask.combined.fits'.format(name_prefix, bands[0], prefix2, bands[0])
+fname_sfftmask_f444w = maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.sfftdiff.decorr.mask.combined.fits'.format(name_prefix, bands[1], prefix2, bands[1])
 
-fname_sfftdiff_f200w = '/data6/stone28/nexus/sfft_nexus_{}_F200W/output/nexus_{}_F200W.sfftdiff.decorr.combined.fits'.format(name_prefix, prefix2)
-fname_sfftdiff_f444w = '/data6/stone28/nexus/sfft_nexus_{}_F444W/output/nexus_{}_F444W.sfftdiff.decorr.combined.fits'.format(name_prefix, prefix2)
-fname_subdiff_f200w = '/data6/stone28/nexus/zogy_nexus_{}_F200W/output/nexus_{}_F200W.subdiff.fits'.format(name_prefix, prefix2)
-fname_subdiff_f444w = '/data6/stone28/nexus/zogy_nexus_{}_F444W/output/nexus_{}_F444W.subdiff.fits'.format(name_prefix, prefix2)
+fname_sfftdiff_f200w = maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.sfftdiff.decorr.combined.fits'.format(name_prefix, bands[0], prefix2, bands[0])
+fname_sfftdiff_f444w = maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.sfftdiff.decorr.combined.fits'.format(name_prefix, bands[1], prefix2, bands[1])
+fname_subdiff_f200w = maindir + 'zogy_nexus_{}_{}/output/nexus_{}_{}.subdiff.fits'.format(name_prefix, bands[0], prefix2, bands[0])
+fname_subdiff_f444w = maindir + 'zogy_nexus_{}_{}/output/nexus_{}_{}.subdiff.fits'.format(name_prefix, bands[1], prefix2, bands[1])
 
 empty_mask_f200w = np.zeros(len(dat_f200w_stacked), dtype=bool)
 empty_mask_f444w = np.zeros(len(dat_f444w_stacked), dtype=bool)
@@ -916,7 +919,7 @@ cols = ['FLUX_AUTO', 'FLUX_APER']
 cols_err = ['FLUXERR_AUTO', 'FLUXERR_APER']
 suffixes = ['_DiffStackSub', '_DiffStackSFFT']# '_BKGSUB_DiffStackSub', '_BKGSUB_DiffStackSFFT', '_PHOT_BKGSUB_DiffStackSub', '_PHOT_BKGSUB_DiffStackSFFT']
 
-for n, b in enumerate(['F200W', 'F444W']):
+for n, b in enumerate(bands):
 
 
     for c, ce in zip(cols, cols_err):
@@ -1232,5 +1235,5 @@ print('\t F444W: {}'.format(np.sum(remove_mask_f444w)))
 dat_all[0] = dat_all[0][~remove_mask_f200w].copy()
 dat_all[1] = dat_all[1][~remove_mask_f444w].copy()
 
-for n, b in enumerate(['F200W', 'F444W']):
-    dat_all[n].write('/data6/stone28/nexus/nexus_{}_stacked_sources_{}.fits'.format(name_prefix, b), overwrite=True)
+for n, b in enumerate(bands):
+    dat_all[n].write(maindir + 'nexus_{}_stacked_sources_{}.fits'.format(name_prefix, b), overwrite=True)
