@@ -38,7 +38,7 @@ mpl.rcParams['savefig.format'] = 'pdf'
 
 def summary_plot(maindir, ref_name, sci_name, 
                  ref_title=None, sci_title=None,
-                 show_fwhm=False, scalebar=True, show_stats=True,
+                 show_fwhm=False, scalebar=True, show_stats=True, position_angles=None,
                  cutout_center=None, cutout_size=None, npx_boundary=30,
                  skysub=False, conv_ref=False, conv_sci=False, show_sat_sources=False,
                  output_fname=None, show=False):
@@ -359,17 +359,17 @@ def summary_plot(maindir, ref_name, sci_name,
     ax_i.set_xticks([])
     ax_i.set_yticks([])
     
-    if show_fwhm:
-        hdr = fits.open(fname_psf_lref)[0].header
-        if 'FWHM_major' in hdr:          
-            f1 = hdr['FWHM_major']
-            f2 = hdr['FWHM_minor']
-            fval_ref = (f1+f2)/2
-        elif 'FWHM' in hdr:
-            fval_ref = hdr['FWHM']
+    if position_angles is not None:
+        # hdr = fits.open(fname_psf_lref)[0].header
+        # if 'FWHM_major' in hdr:          
+        #     f1 = hdr['FWHM_major']
+        #     f2 = hdr['FWHM_minor']
+        #     fval_ref = (f1+f2)/2
+        # elif 'FWHM' in hdr:
+        #     fval_ref = hdr['FWHM']
 
             
-        ax_i.text(.05, .95, 'FWHM = {:.2f}"'.format(fval_ref), fontsize=10, ha='left', va='top', transform=ax_i.transAxes, color='yellow', fontweight='bold')
+        ax_i.text(.05, .95, 'PA = {}°'.format(int(position_angles[0])), fontsize=10, ha='left', va='top', transform=ax_i.transAxes, color='yellow', fontweight='bold')
             
 
     #SCI
@@ -378,16 +378,16 @@ def summary_plot(maindir, ref_name, sci_name,
     ax_i.set_xticks([])
     ax_i.set_yticks([])
     
-    if show_fwhm:
-        hdr = fits.open(fname_psf_lsci)[0].header
-        if 'FWHM_major' in hdr:
-            f1 = hdr['FWHM_major']
-            f2 = hdr['FWHM_minor']
-            fval_sci = (f1+f2)/2
-        elif 'FWHM' in hdr:
-            fval_sci = hdr['FWHM']
-            
-        ax_i.text(.05, .95, 'FWHM = {:.2f}"'.format(fval_sci), fontsize=10, ha='left', va='top', transform=ax_i.transAxes, color='yellow', fontweight='bold')
+    if position_angles is not None:
+        # hdr = fits.open(fname_psf_lsci)[0].header
+        # if 'FWHM_major' in hdr:
+        #     f1 = hdr['FWHM_major']
+        #     f2 = hdr['FWHM_minor']
+        #     fval_sci = (f1+f2)/2
+        # elif 'FWHM' in hdr:
+        #     fval_sci = hdr['FWHM']
+
+        ax_i.text(.05, .95, 'PA = {}°'.format(int(position_angles[1])), fontsize=10, ha='left', va='top', transform=ax_i.transAxes, color='yellow', fontweight='bold')
 
 
     # if conv_ref:
