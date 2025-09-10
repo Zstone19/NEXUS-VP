@@ -783,13 +783,17 @@ def align_psf(fname_dat, fname_psf, outdir, prefix, fname_default, ref_shape=(20
     header['NAXIS2'] = ref_shape[1]
     
     if ref_shape[0] % 2 == 0:
+        #Even npix
         header['CRPIX1'] = float(   ref_shape[0] / 2 + 0.5   )
     else:
+        #Odd npix
         header['CRPIX1'] = float(   ref_shape[0] // 2   )
         
     if ref_shape[1] % 2 == 0:
+        #Even npix
         header['CRPIX2'] = float(   ref_shape[1] / 2 + 0.5   )
     else:
+        #Odd npix
         header['CRPIX2'] = float(   ref_shape[1] // 2   )
         
     header['CRVAL1'] = hdr_ref['CRVAL1']
@@ -898,6 +902,13 @@ def align_psf(fname_dat, fname_psf, outdir, prefix, fname_default, ref_shape=(20
     header['CD2_1'] = hdr_psf['CD2_1']
     header['CD2_2'] = hdr_psf['CD2_2']
     
+    if ('f200w' in prefix) or ('F200W' in prefix):
+        header['CDELT1'] = .031/3600.
+        header['CDELT2'] = .031/3600.
+    if ('f444w' in prefix) or ('F444W' in prefix):
+        header['CDELT1'] = .063/3600.
+        header['CDELT2'] = .063/3600.
+
     fout = outdir + '{}_psf.fits'.format(prefix)
     fits.writeto(fout, im, header=header, overwrite=True)
             
