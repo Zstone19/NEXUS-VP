@@ -897,10 +897,17 @@ def align_psf(fname_dat, fname_psf, outdir, prefix, fname_default, ref_shape=(20
     header['CRVAL2'] = hdr_ref['CRVAL2']
     header['CTYPE1'] = hdr_ref['CTYPE1']
     header['CTYPE2'] = hdr_ref['CTYPE2']
-    header['CD1_1'] = hdr_psf['CD1_1']
-    header['CD1_2'] = hdr_psf['CD1_2']
-    header['CD2_1'] = hdr_psf['CD2_1']
-    header['CD2_2'] = hdr_psf['CD2_2']
+    
+    if 'CD1_1' in hdr_psf:
+        header['CD1_1'] = hdr_psf['CD1_1']
+        header['CD1_2'] = hdr_psf['CD1_2']
+        header['CD2_1'] = hdr_psf['CD2_1']
+        header['CD2_2'] = hdr_psf['CD2_2']
+    elif ('PC1_1' in hdr_psf) and ('PC1_2' in hdr_psf) and ('PC2_1' in hdr_psf) and ('PC2_2' in hdr_psf):
+        header['PC1_1'] = hdr_psf['PC1_1']
+        header['PC1_2'] = hdr_psf['PC1_2']
+        header['PC2_1'] = hdr_psf['PC2_1']
+        header['PC2_2'] = hdr_psf['PC2_2']
     
     if ('f200w' in prefix) or ('F200W' in prefix):
         header['CDELT1'] = .031/3600.
