@@ -6,7 +6,7 @@ import numpy as np
 
 
 names = ['wide', 'deep']
-epochs = ['01', '02']
+epochs = ['01', '03']
 
 
 for jwst_band in ['F200W', 'F444W']:
@@ -87,8 +87,12 @@ for jwst_band in ['F200W', 'F444W']:
             hdul.writeto(fname_out, overwrite=True)
             
             
+        if (names[1]+epochs[1] == 'deep03') and (jwst_band == 'F444W'):
+            prefix_i = '_006_60mas'
+        else:
+            prefix_i = prefix
             
-        fname_og = maindir_og + 'nexus_central_{}_ep{}_{}{}_i2d_{}.fits'.format(names[1], epochs[1], jwst_band.lower(), prefix, suffix)
+        fname_og = maindir_og + 'nexus_central_{}_ep{}_{}{}_i2d_{}.fits'.format(names[1], epochs[1], jwst_band.lower(), prefix_i, suffix)
         fname = maindir + 'nexus_{}_ep{}_{}_{}.shift.fits'.format(names[1], epochs[1], jwst_band.lower(), suffix2)
 
         if suffix == 'data':

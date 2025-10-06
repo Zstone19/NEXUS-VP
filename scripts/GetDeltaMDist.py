@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 from functools import partial
 from tqdm import tqdm
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -141,7 +142,7 @@ def fit_for_sigma_curve(mavg_vals_fit, binned_dm_std, mag_centers, mstar, slope_
     return mstar, coeffs0, coeffs1
 
 
-def fit_for_mean_curve(mavg_vals_fit, binned_dm_std, err, mag_centers, mstar=26, slope_max=.005):
+def fit_for_mean_curve(mavg_vals_fit, binned_dm_std, err, mag_centers, mstar=26, min_mstar=23, slope_max=.005):
     A0 = 1.
     B0 = 1.
     C0 = 1.
@@ -169,7 +170,7 @@ def fit_for_mean_curve(mavg_vals_fit, binned_dm_std, err, mag_centers, mstar=26,
         coeffs1 = res
 
 
-        if mstar-.05 < mag_centers[0]:
+        if mstar-.05 < min_mstar:
             coeffs0 = np.polyfit(mavg_vals_fit[mavg_vals_fit <= mstar], binned_dm_std[mavg_vals_fit <= mstar], 0)
             
             coeffs0 = np.array([0., coeffs0[0]])
@@ -247,7 +248,7 @@ def fit_for_mean_curve_posslope(mavg_vals_fit, binned_dm_std, err, mag_centers, 
     return mstar, coeffs0, coeffs1
 
 
-def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5,
+def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5, mstar_init=24.5,
               remove_flag=True, remove_saturated=True, remove_elongated=True, max_magdiff=35,
               difftype='FINAL'):
 
@@ -318,7 +319,7 @@ def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5,
                 mmax = 29.
             
             # mstar_init = mmax-1.
-            mstar_init = 24.5
+            # mstar_init = 24.5
             
             mag_bins = np.arange(19, mmax, dmag)
             mag_centers = mag_bins[:-1] + (mag_bins[1] - mag_bins[0])/2.
@@ -474,8 +475,8 @@ def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5,
             nanmask = np.isnan(binned_dm_mean)
 
             #Fit dm_mean and dmerr_med and dm_std
-            mstar_dmerr_med, coeffs0_dmerr_med, coeffs1_dmerr_med = fit_for_mean_curve(mag_centers[~nanmask], binned_dmerr_med[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26., slope_max=max_slope)
-            mstar_dm_mean, coeffs0_dm_mean, coeffs1_dm_mean = fit_for_mean_curve(mag_centers[~nanmask], binned_dm_mean[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26., slope_max=max_slope)  
+            mstar_dmerr_med, coeffs0_dmerr_med, coeffs1_dmerr_med = fit_for_mean_curve(mag_centers[~nanmask], binned_dmerr_med[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26., min_mstar=mag_centers[0], slope_max=max_slope)
+            mstar_dm_mean, coeffs0_dm_mean, coeffs1_dm_mean = fit_for_mean_curve(mag_centers[~nanmask], binned_dm_mean[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26.5, min_mstar=24.5, slope_max=max_slope)  
             mstar_dm_std, coeffs0_dm_std, coeffs1_dm_std = fit_for_mean_curve_posslope(mag_centers[~nanmask], binned_dm_std[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=mstar_init, slope_max=max_slope)
             
             
@@ -598,8 +599,8 @@ def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5,
             
             try:
                 #Fit dm_mean and dmerr_med and dm_std
-                mstar_dm_mean, coeffs0_dm_mean, coeffs1_dm_mean = fit_for_mean_curve(mag_centers[~nanmask], binned_dm_mean[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26., slope_max=max_slope)  
-                mstar_dmerr_med, coeffs0_dmerr_med, coeffs1_dmerr_med = fit_for_mean_curve(mag_centers[~nanmask], binned_dmerr_med[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26., slope_max=max_slope)
+                mstar_dm_mean, coeffs0_dm_mean, coeffs1_dm_mean = fit_for_mean_curve(mag_centers[~nanmask], binned_dm_mean[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26., min_mstar=mag_centers[0], slope_max=max_slope)  
+                mstar_dmerr_med, coeffs0_dmerr_med, coeffs1_dmerr_med = fit_for_mean_curve(mag_centers[~nanmask], binned_dmerr_med[~nanmask], np.ones((~nanmask).sum()), mag_centers, mstar=26., min_mstar=mag_centers[0], slope_max=max_slope)
                 mstar_dm_std, coeffs0_dm_std, coeffs1_dm_std = fit_for_sigma_curve(mag_centers[~nanmask], binned_dm_std[~nanmask], mag_centers, mstar=26., slope_max=max_slope)
                 
                 #Add to tables
@@ -638,12 +639,15 @@ def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5,
 
 if __name__ == '__main__':
     names = ['wide', 'deep']
-    epochs = ['01', '01']
+    epochs = ['01', '02']
     name_prefix = '{}{}_{}{}'.format(names[0], epochs[0], names[1], epochs[1])
     
+    #For wide01-deep01, used mstar_init=24.5
+
     figdir = '/data6/stone28/nexus/nexus_{}_nuclear_variability_figs/'.format(name_prefix)
     maindir = '/data6/stone28/nexus/'
     outdir = maindir + 'correction_curves_{}/'.format(name_prefix)
+    os.makedirs(outdir, exist_ok=True)
 
     dm_mean_all = []
     dm_std_all = []
@@ -661,7 +665,7 @@ if __name__ == '__main__':
 
     for dt in ['FINAL', 'SUB', 'SFFT', 'CAT']:
 
-        cdat_dm_mean, cdat_dm_std, cdat_dmerr_med, cdat_dm_mean_unbias, cdat_dm_std_unbias, cdat_dmerr_med_unbias = unbias_dm(dat_all, suffix='', nmin=50, max_slope=1e-3, dmag=0.5,
+        cdat_dm_mean, cdat_dm_std, cdat_dmerr_med, cdat_dm_mean_unbias, cdat_dm_std_unbias, cdat_dmerr_med_unbias = unbias_dm(dat_all, suffix='', nmin=50, max_slope=1e-3, dmag=0.5, mstar_init=24.,
                                                                                                                               remove_flag=False, remove_saturated=False, remove_elongated=False, max_magdiff=35,
                                                                                                                               difftype=dt)
 

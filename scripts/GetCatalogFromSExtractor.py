@@ -526,12 +526,12 @@ def bkgsub_fluxes(im_diff, im_err, im_mask, x, y, fname_apcorr, band, r1=1, subt
 #DEFINITIONS  ##################################################################################################
 ################################################################################################################
 
-zp_f200w = 28.0865 #Wide01/Deep01 stacked catalogs
+zp_f200w = 28.0865 #Wide01/Deep01/Deep02 stacked catalogs
 
 matching_radius = 0.1 #arcsec
 
 names = ['wide', 'deep']
-epochs = ['01', '01']
+epochs = ['01', '02']
 bands = ['F200W', 'F444W']
 
 name_prefix = '{}{}_{}{}'.format(names[0], epochs[0], names[1], epochs[1])
@@ -579,10 +579,10 @@ assert (dat_stack_f444w_sfft['ALPHA_J2000'].data == dat_stack_f444w_sub['ALPHA_J
 cat_nexus_wide = Table.read('/data3/web/nexus/edr/nircam/catalog/wide_ep1_01_src_catalog_v1.fits')
 
 indir = '/data4/jwst/nexus/reduced_data/SEXtractor/catalogs/'
-cat_nexus_widestack_f200w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix1, bands[0].lower()))
-cat_nexus_widestack_f444w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix1, bands[1].lower()))
-cat_nexus_deepstack_f200w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix2, bands[0].lower()))
-cat_nexus_deepstack_f444w = Table.read(indir + 'nexus_full_{}_{}_catalog.fits'.format(prefix2, bands[1].lower()))
+cat_nexus_widestack_f200w = Table.read(indir + 'nexus_full_{}_ep{}_{}_catalog.fits'.format(names[0], epochs[0], bands[0].lower()))
+cat_nexus_widestack_f444w = Table.read(indir + 'nexus_full_{}_ep{}_{}_catalog.fits'.format(names[0], epochs[0], bands[1].lower()))
+cat_nexus_deepstack_f200w = Table.read(indir + 'nexus_full_{}_ep{}_{}_catalog.fits'.format(names[1], epochs[1], bands[0].lower()))
+cat_nexus_deepstack_f444w = Table.read(indir + 'nexus_full_{}_ep{}_{}_catalog.fits'.format(names[1], epochs[1], bands[1].lower()))
 
 #Saturated sources
 satdat_f200w = Table.read(maindir + 'sfft_nexus_{}_{}/output/nexus_{}_{}.saturated_sources.combined.cat'.format(name_prefix, bands[0], prefix2, bands[0]))

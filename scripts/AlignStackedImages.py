@@ -113,7 +113,7 @@ for b in bands:
         mask2 = hdul[0].data.astype(bool)
 
     mask_tot = mask1 | mask2
-    
+
         
     N0 = im_r.shape[0]
     N1 = im_r.shape[1]

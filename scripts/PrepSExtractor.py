@@ -1,11 +1,16 @@
 import os
 import shutil
+import glob
+import subprocess
 
 import numpy as np
 from astropy.io import fits
 
 
 maindir = '/data6/stone28/nexus/'
+
+sexdir_og_sfft = maindir + 'nuclear_variability_wide01_deep01/sfftsource_combined_nexus_wide01_deep01/'
+sexdir_og_sub = maindir + 'nuclear_variability_wide01_deep01/subsource_combined_nexus_wide01_deep01/'
 
 names = ['wide', 'deep']
 epochs = ['01', '02']
@@ -14,10 +19,58 @@ prefix1 = '{}{}'.format(names[0], epochs[0])
 prefix2 = '{}{}'.format(names[1], epochs[1])
 name_prefix = '{}{}_{}{}'.format(names[0], epochs[0], names[1], epochs[1])
 
-os.makedirs(maindir + 'subsource_combined_nexus_{}/'.format(name_prefix), exist_ok=True)
-os.makedirs(maindir + 'subsource_combined_nexus_{}/ims/'.format(name_prefix), exist_ok=True)
-os.makedirs(maindir + 'sfftsource_combined_nexus_{}/'.format(name_prefix), exist_ok=True)
-os.makedirs(maindir + 'sfftsource_combined_nexus_{}/ims/'.format(name_prefix), exist_ok=True)
+sexdir_sfft = maindir + 'sfftsource_combined_nexus_{}/'.format(name_prefix)
+sexdir_sub = maindir + 'subsource_combined_nexus_{}/'.format(name_prefix)
+stackdir = maindir + 'NEXUS/stacked_cropped_{}/'.format(name_prefix)
+
+###########
+#Make new dirs
+###########
+shutil.copytree(sexdir_og_sub, sexdir_sub, dirs_exist_ok=True)
+shutil.copytree(sexdir_og_sfft, sexdir_sfft, dirs_exist_ok=True)
+
+for f in glob.glob(sexdir_sub + 'output_pos/*'):
+    os.remove(f)
+for f in glob.glob(sexdir_sfft + 'output_pos/*'):
+    os.remove(f)
+for f in glob.glob(sexdir_sub + 'ims/*'):
+    os.remove(f)
+for f in glob.glob(sexdir_sfft + 'ims/*'):
+    os.remove(f)
+
+
+###########
+#Prepare sextractor config files
+###########
+for b in bands:
+    #SUB
+    with open(sexdir_sub + 'nexus_{}_subdiff_stack.sex'.format(b.lower()), 'r') as f:    
+        lines = f.readlines()
+    
+    lines[4]  = "CATALOG_NAME     {}\n".format(sexdir_sub + 'output_pos/nexus_{}_subdiff_stack.cat'.format(b))
+    lines[27] = "WEIGHT_IMAGE     {},{}ims/DIFF_F200W.noise.fits\n" .format(stackdir + 'nexus_{}_{}.weight.fits'.format(name_prefix, sexdir_sub, b))
+    lines[67] = "CHECKIMAGE_NAME  {}\n".format(sexdir_sub + 'output_pos/nexus_{}_subdiff_stack.seg'.format(b))
+
+    with open(sexdir_sub + 'nexus_{}_subdiff_stack.sex'.format(b.lower()), 'w') as f:
+        f.writelines(lines)
+        
+
+    #SFFT
+    with open(sexdir_sfft + 'nexus_{}_sfftdiff_stack.sex'.format(b.lower()), 'r') as f:    
+        lines = f.readlines()
+    
+    lines[4]  = "CATALOG_NAME     {}\n".format(sexdir_sfft + 'output_pos/nexus_{}_sfftdiff_stack.cat'.format(b))
+    lines[27] = "WEIGHT_IMAGE     {},{}ims/DIFF_F200W.noise.fits\n" .format(stackdir + 'nexus_{}_{}.weight.fits'.format(name_prefix, sexdir_sfft, b))
+    lines[67] = "CHECKIMAGE_NAME  {}\n".format(sexdir_sfft + 'output_pos/nexus_{}_sfftdiff_stack.seg'.format(b))
+
+    with open(sexdir_sfft + 'nexus_{}_sfftdiff_stack.sex'.format(b.lower()), 'w') as f:
+        f.writelines(lines)
+
+
+
+###########
+#Copy image files to new dirs
+###########
 
 for b in bands:
 
@@ -109,3 +162,22 @@ for b in bands:
         im[mask] = 1
         hdr = hdul[0].header
         fits.writeto(maindir_sfft + 'DIFF_{}.mask.fits'.format(b), im, hdr, overwrite=True)
+
+
+###########
+# Run SExtractor
+###########
+for b in bands:
+    #SUB
+    cmd = ['sex']
+    cmd += [stackdir + '{}/nexus_{}_stacked_{}.fits,{}ims/DIFF_{}.fits'.format(b.lower(), name_prefix, b, sexdir_sub, b)]
+    cmd += ['-c'] 
+    cmd += ['nexus_{}_subdiff_stack.sex'.format(b.lower())]
+    subprocess.run(cmd, check=True)
+    
+    #SFFT
+    cmd = ['sex']
+    cmd += [stackdir + '{}/nexus_{}_stacked_{}.fits,{}ims/DIFF_{}.fits'.format(b.lower(), name_prefix, b, sexdir_sfft, b)]
+    cmd += ['-c'] 
+    cmd += ['nexus_{}_sfftdiff_stack.sex'.format(b.lower())]
+    subprocess.run(cmd, check=True)

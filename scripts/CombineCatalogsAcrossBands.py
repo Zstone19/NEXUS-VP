@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from astropy.table import Table, vstack
 
@@ -9,7 +10,7 @@ import astropy.units as u
 if __name__ == '__main__':
     bands = ['F200W', 'F444W']
     names = ['wide', 'deep']
-    epochs = ['01', '01']
+    epochs = ['01', '02']
     apers = [0.2, 0.3, 0.5] #arcsec
     
     name_prefix = '{}{}_{}{}'.format(names[0], epochs[0], names[1], epochs[1])
@@ -20,8 +21,8 @@ if __name__ == '__main__':
     fname_edr = '/data3/web/nexus/edr/nircam/catalog/wide_ep1_01_src_catalog_v1.fits'
     fname_zcat = '/data6/JWST/WFSS/MSA_planning/MSA_plan_catalogs/msa_catalog_deep_ep3_enlarged.fits'
     
-    fname_vi_f200w = '/data6/stone28/nexus/nexus_wide01_deep01_nuclear_variability_cutouts_VI/bad_sources_F200W.txt'
-    fname_vi_f444w = '/data6/stone28/nexus/nexus_wide01_deep01_nuclear_variability_cutouts_VI/bad_sources_F444W.txt'
+    fname_vi_f200w = maindir + 'nexus_{}_nuclear_variability_cutouts_VI/bad_sources_F200W.txt'.format(name_prefix)
+    fname_vi_f444w = maindir + 'nexus_{}_nuclear_variability_cutouts_VI/bad_sources_F444W.txt'.format(name_prefix)
 
     dat_f200w_stacked = Table.read(maindir + 'nexus_{}_stacked_sources_{}.fits'.format(name_prefix, bands[0]))
     dat_f444w_stacked = Table.read(maindir + 'nexus_{}_stacked_sources_{}.fits'.format(name_prefix, bands[1]))
@@ -86,7 +87,7 @@ if __name__ == '__main__':
 
     tab1['SATURATED_F200W'] = matched_f200w['SATURATED'].data
     tab1['SATURATED_F444W'] = matched_f444w['SATURATED'].data
-    tab1['ID'] = matched_f200w['ID_WideStack'].data
+    tab1['ID'] = matched_f200w['ID_REFStack'].data
     tab1['OBSERVED_F200W'] = np.ones(len(matched_f200w), dtype=bool)
     tab1['OBSERVED_F444W'] = np.ones(len(matched_f444w), dtype=bool)
 
@@ -510,24 +511,30 @@ if __name__ == '__main__':
     ##################################
     #Get visual inspection flag
     
-    bad_ids_f200w = np.loadtxt(fname_vi_f200w, dtype=int)
-    bad_ids_f444w = np.loadtxt(fname_vi_f444w, dtype=int)
-    
-    vi_flag_f200w = np.zeros(len(tab_tot), dtype=bool)
-    vi_flag_f444w = np.zeros(len(tab_tot), dtype=bool)
-    for i in range(len(tab_tot)):
-        if tab_tot['ID'][i] in bad_ids_f200w:
-            continue
-        else: 
-            vi_flag_f200w[i] = tab_tot['VARIABLE_F200W_BEST'].data[i,1]
-            
-        if tab_tot['ID'][i] in bad_ids_f444w:
-            continue
-        else: 
-            vi_flag_f444w[i] = tab_tot['VARIABLE_F444W_BEST'].data[i,1]
-    
-    tab_tot['MASK_VISUAL_INSPECTION_F200W'] = vi_flag_f200w
-    tab_tot['MASK_VISUAL_INSPECTION_F444W'] = vi_flag_f444w
+    if os.path.exists(fname_vi_f200w) and os.path.exists(fname_vi_f444w):
+        bad_ids_f200w = np.loadtxt(fname_vi_f200w, dtype=int)
+        bad_ids_f444w = np.loadtxt(fname_vi_f444w, dtype=int)
+        
+        vi_flag_f200w = np.zeros(len(tab_tot), dtype=bool)
+        vi_flag_f444w = np.zeros(len(tab_tot), dtype=bool)
+        for i in range(len(tab_tot)):
+            if tab_tot['ID'][i] in bad_ids_f200w:
+                continue
+            else: 
+                vi_flag_f200w[i] = tab_tot['VARIABLE_F200W_BEST'].data[i,1]
+                
+            if tab_tot['ID'][i] in bad_ids_f444w:
+                continue
+            else: 
+                vi_flag_f444w[i] = tab_tot['VARIABLE_F444W_BEST'].data[i,1]
+        
+        tab_tot['MASK_VISUAL_INSPECTION_F200W'] = vi_flag_f200w
+        tab_tot['MASK_VISUAL_INSPECTION_F444W'] = vi_flag_f444w
+        
+    else:
+        print('No visual inspection files found; setting all to False')
+        tab_tot['MASK_VISUAL_INSPECTION_F200W'] = np.zeros(len(tab_tot), dtype=bool)
+        tab_tot['MASK_VISUAL_INSPECTION_F444W'] = np.zeros(len(tab_tot), dtype=bool)
     
     ####################################
     #Put in fiducial values

@@ -10,16 +10,16 @@ import os
 import glob
 import shutil
 
-import sys
-sys.path.append('../NEXUS-VP/src/')
-sys.path.append('../NEXUS-VP/src/psf')
-import psf_euclid as psfe
-import align as al
+# import sys
+# sys.path.append('../NEXUS-VP/src/')
+# sys.path.append('../NEXUS-VP/src/psf')
+# import psf_euclid as psfe
+# import align as al
 
 
 bands = ['f200w', 'f444w']
 names = ['wide', 'deep']
-epochs = ['01', '02']
+epochs = ['01', '03']
 
 
 # maindir = '/data3/web/nexus_collab/NIRCam/Deep_epoch/epoch1/60mas/'
@@ -114,9 +114,9 @@ for b in bands:
         os.makedirs(outdir_i, exist_ok=True)
                 
         fname1 = maindir + 'nexus_central_{}_ep{}_'.format(names[0], epochs[0]) + b + '_60mas_i2d_data.fits'    
-        fname2 = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_60mas_i2d_data.fits'
+        fname2 = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_006_60mas_i2d_data.fits'
         fname1e = maindir + 'nexus_central_{}_ep{}_'.format(names[0], epochs[0]) + b + '_60mas_i2d_error.fits'
-        fname2e = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_60mas_i2d_error.fits'
+        fname2e = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_006_60mas_i2d_error.fits'
         
     elif b.upper() == 'F200W':
         maindir = '/data3/web/nexus_collab/nircam/Deep_epoch/'

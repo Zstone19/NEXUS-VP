@@ -9,9 +9,12 @@ from align import align_psf
 
 
 size = (1201,1201)
-names = ['wide', 'deep', 'deep']
-epochs = ['01', '01', '02']
+# names = ['wide', 'deep', 'deep']
+# epochs = ['01', '01', '02', '03']
 bands = ['F200W', 'F444W']
+
+names = ['deep']
+epochs = ['03']
 
 
 for name, epoch in zip(names, epochs):
@@ -21,9 +24,12 @@ for name, epoch in zip(names, epochs):
         if band == 'F200W':
             suffix = ''
         elif band == 'F444W':
-            suffix = '_60mas'
-            
-            
+            if name+epoch == 'deep03':
+                suffix = '_006_60mas'
+            else:
+                suffix = '_60mas'
+
+
         fname_dat += 'nexus_central_{}_ep{}_{}{}_i2d_data.fits'.format(name, epoch, band.lower(), suffix)
         fname_psf = '/data6/stone28/nexus/NEXUS/webbpsf/nexus_{}{}_{}.webbpsf.fits'.format(name, epoch, band.lower())
 
