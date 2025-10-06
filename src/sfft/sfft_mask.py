@@ -938,8 +938,8 @@ def make_mask(maindir, paramdir, ref_name, sci_name, filtername_ref, filtername_
     
     #Use global catalogs for bright sources, local catalogs for dimmer ones    
         #Bright (f_aper > 30)
-    bad_mask_r_global = (   (catdat_ref_global['FLUX_APER'] > 45) & (catdat_ref_global['FLUX_APER'] < 150 ) & (catdat_ref_global['CLASS_STAR'] > .9)   )  |  ( (catdat_ref_global['FLUX_APER'] > 150) & (catdat_ref_global['CLASS_STAR'] > .7) )
-    bad_mask_s_global = (   (catdat_sci_global['FLUX_APER'] > 45) & (catdat_sci_global['FLUX_APER'] < 150 ) & (catdat_sci_global['CLASS_STAR'] > .9)   )  |  ( (catdat_sci_global['FLUX_APER'] > 150) & (catdat_sci_global['CLASS_STAR'] > .7) )
+    bad_mask_r_global = (   (catdat_ref_global['FLUX_APER'] > 45) & (catdat_ref_global['FLUX_APER'] < 150 ) & (catdat_ref_global['CLASS_STAR'] > .9)   )  |  ( (catdat_ref_global['FLUX_APER'] > 150) & (catdat_ref_global['CLASS_STAR'] > .7) ) | (catdat_ref_global['FLUX_APER'] > 300)
+    bad_mask_s_global = (   (catdat_sci_global['FLUX_APER'] > 45) & (catdat_sci_global['FLUX_APER'] < 150 ) & (catdat_sci_global['CLASS_STAR'] > .9)   )  |  ( (catdat_sci_global['FLUX_APER'] > 150) & (catdat_sci_global['CLASS_STAR'] > .7) ) | (catdat_sci_global['FLUX_APER'] > 300)
         #Dim (f_aper < 30)
     bad_mask_r = ( (catdat_ref['CLASS_STAR'] > .98) & (catdat_ref['FLUX_APER'] > 1) & (catdat_ref['ELONGATION'] < 1.3) )
     bad_mask_s = ( (catdat_sci['CLASS_STAR'] > .98) & (catdat_sci['FLUX_APER'] > 1) & (catdat_sci['ELONGATION'] < 1.3) )
