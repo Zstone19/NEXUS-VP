@@ -2,6 +2,8 @@
 
 The NEXUS Nuclear Variability Pipeline (NVP) is designed to obtain difference images from NEXUS mosaics, identify sources of variability, and extract said variability reliably. NVP utilizes difference images obtained via direct subtraction (due to the high quality and pointing of the images from JWST) and more complex difference imaging techniques such as SFFT and ZOGY.
 
+__Note__: Most of this package is in development. The only portion of this pipeline tested and used for publication is the ``sfft/`` directory. The scripts in ``scripts/`` are mainly used to support these features.
+
 # Features
 
 ## SFFT Subtraction
