@@ -17,9 +17,9 @@ import shutil
 # import align as al
 
 
-bands = ['f200w', 'f444w']
+bands = ['f444w', 'f200w']
 names = ['wide', 'deep']
-epochs = ['01', '03']
+epochs = ['01', '04']
 
 
 # maindir = '/data3/web/nexus_collab/NIRCam/Deep_epoch/epoch1/60mas/'
@@ -114,16 +114,16 @@ for b in bands:
         os.makedirs(outdir_i, exist_ok=True)
                 
         fname1 = maindir + 'nexus_central_{}_ep{}_'.format(names[0], epochs[0]) + b + '_60mas_i2d_data.fits'    
-        fname2 = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_006_60mas_i2d_data.fits'
+        fname2 = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_60mas_i2d_data.fits'
         fname1e = maindir + 'nexus_central_{}_ep{}_'.format(names[0], epochs[0]) + b + '_60mas_i2d_error.fits'
-        fname2e = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_006_60mas_i2d_error.fits'
+        fname2e = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_60mas_i2d_error.fits'
         
     elif b.upper() == 'F200W':
         maindir = '/data3/web/nexus_collab/nircam/Deep_epoch/'
         
         outdir_i = output_dir + b + '/'
         os.makedirs(outdir_i, exist_ok=True)
-                
+
         fname1 = maindir + 'nexus_central_{}_ep{}_'.format(names[0], epochs[0]) + b + '_i2d_data.fits'    
         fname2 = maindir + 'nexus_central_{}_ep{}_'.format(names[1], epochs[1]) + b + '_i2d_data.fits'
         fname1e = maindir + 'nexus_central_{}_ep{}_'.format(names[0], epochs[0]) + b + '_i2d_error.fits'
@@ -141,40 +141,40 @@ for b in bands:
         
     wcs1 = WCS(header1)
     wcs2 = WCS(header2)
-        
-        
+
+
     mask1 = np.isnan(data1) | (data1 == 0.) | (~np.isfinite(data1))
     mask2 = np.isnan(data2) | (data2 == 0.) | (~np.isfinite(data2))
     mask_all = mask1 | mask2
-    
+
     #Crop empty space
     ind = np.argwhere(~mask_all)
     x_min = ind[:,1].min()
     y_min = ind[:,0].min()
     x_max = ind[:,1].max()
     y_max = ind[:,0].max()
-    
+
     y_min = max(0, y_min - 5)
     y_max = min(data1.shape[0], y_max + 5)
     x_min = max(0, x_min - 5)
     x_max = min(data1.shape[1], x_max + 5)
-    
+
     xc = (x_min + x_max) / 2
     yc = (y_min + y_max) / 2
     shape_new = (y_max-y_min, x_max-x_min)
-    
+
     rac, decc = wcs1.wcs_pix2world(xc, yc, 0)
     coord = SkyCoord(ra=rac, dec=decc, unit=(u.deg, u.deg))
     
     #############################################
     #DATA
     print('\t Data')
-    
+
     cutout1 = Cutout2D(data1, coord, shape_new, wcs=wcs1)
     cutout2 = Cutout2D(data2, coord, shape_new, wcs=wcs2)
     hdr1_o = cutout1.wcs.to_header()
     hdr2_o = cutout2.wcs.to_header()
-    
+
     maskA = (cutout1.data == 0) | (~np.isfinite(cutout1.data)) | np.isnan(cutout1.data)
     maskB = (cutout2.data == 0) | (~np.isfinite(cutout2.data)) | np.isnan(cutout2.data)
     mask_both = maskA | maskB

@@ -5,7 +5,7 @@ import numpy as np
 
 
 names = ['wide', 'deep']
-epochs = ['01', '03']
+epochs = ['01', '04']
 
 
 for jwst_band in ['F200W', 'F444W']:

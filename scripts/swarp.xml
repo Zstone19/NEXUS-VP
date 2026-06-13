@@ -3,7 +3,7 @@
 <VOTABLE xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.ivoa.net/xml/VOTable/v1.1">
 <DESCRIPTION>produced by SWarp</DESCRIPTION>
 <!-- VOTable description at http://www.ivoa.net/Documents/latest/VOT.html -->
-<RESOURCE ID="SWarp" name="nexus_deep03_f444w.align.fits">
+<RESOURCE ID="SWarp" name="nexus_deep04_f444w.align.fits">
  <DESCRIPTION>Data related to SWarp</DESCRIPTION>
  <INFO name="QUERY_STATUS" value="OK" />
  <COOSYS ID="J2000" equinox="J2000" epoch="J2000" system="ICRS"/>
@@ -16,14 +16,14 @@
   <PARAM name="Soft_Auth" datatype="char" arraysize="*" ucd="meta.bib.author;meta.software" value="Emmanuel Bertin"/>
   <PARAM name="Soft_Ref" datatype="char" arraysize="*" ucd="meta.bib.bibcode;meta.software" value="2002ASPC..281..228B"/>
   <PARAM name="NThreads" datatype="int" ucd="meta.number;meta.software" value="1"/>
-  <PARAM name="Date" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="2025-10-01"/>
-  <PARAM name="Time" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="01:36:05"/>
-  <PARAM name="Duration" datatype="float" ucd="time.event;meta.software" value="0.05" unit="s"/>
+  <PARAM name="Date" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="2026-01-22"/>
+  <PARAM name="Time" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="16:45:11"/>
+  <PARAM name="Duration" datatype="float" ucd="time.event;meta.software" value="0.07" unit="s"/>
   <PARAM name="User" datatype="char" arraysize="*" ucd="meta.curation" value="stone28"/>
   <PARAM name="Host" datatype="char" arraysize="*" ucd="meta.curation" value="ariel.astro.illinois.edu"/>
   <PARAM name="Path" datatype="char" arraysize="*" ucd="meta.dataset" value="/home/stone28/projects/WebbDiffImg/NEXUS-VP/scripts"/>
-  <PARAM name="Image_Name" datatype="char" arraysize="*" ucd="obs.image;meta.fits" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w.align.fits"/>
-  <PARAM name="Weight_Name" datatype="char" arraysize="*" ucd="obs.image;meta.fits" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w.align.weight.fits"/>
+  <PARAM name="Image_Name" datatype="char" arraysize="*" ucd="obs.image;meta.fits" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w.align.fits"/>
+  <PARAM name="Weight_Name" datatype="char" arraysize="*" ucd="obs.image;meta.fits" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w.align.weight.fits"/>
   <PARAM name="NOverlap_Max" datatype="int" ucd="meta.number;stat.max;obs.image" value="1"/>
   <PARAM name="ExpTime_Max" datatype="float" ucd="time.expo;stat.max;obs.image" value="0" unit="s"/>
   <PARAM name="Gain_Max" datatype="float" ucd="instr.calib;stat.max;obs.image" value="0" unit="photon/ADU"/>
@@ -67,12 +67,12 @@
    <FIELD name="COOSYS" datatype="char" arraysize="*" ucd="meta.code;pos"/>
    <DATA><TABLEDATA>
     <TR>
-     <TD>1</TD><TD>/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w_psf.fits</TD><TD>(null)</TD><TD>F</TD><TD>(null)</TD>
-     <TD>0</TD><TD>2025-10-01</TD><TD>01:36:05</TD><TD>0.00</TD>
+     <TD>1</TD><TD>/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w_psf.fits</TD><TD>(null)</TD><TD>F</TD><TD>(null)</TD>
+     <TD>0</TD><TD>2026-01-22</TD><TD>16:45:11</TD><TD>0.00</TD>
      <TD>4.58254e-09</TD><TD>5.29174e-09</TD><TD>F</TD><TD>AUTO</TD><TD>128</TD><TD>3</TD><TD>0</TD>
      <TD>NONE</TD><TD>T</TD><TD>0</TD><TD>1</TD><TD>F</TD>
      <TD>0</TD><TD>50000</TD><TD>0</TD><TD>1</TD>
-     <TD>0.907029</TD><TD>268.4625795 65.19916667</TD><TD>0.06</TD><TD>0</TD><TD>2000</TD><TD>2000</TD>
+     <TD>0.907029</TD><TD>268.4625199 65.199175</TD><TD>0.06</TD><TD>0</TD><TD>2000</TD><TD>2000</TD>
      <TD>ICRS</TD>
     </TR>
    </TABLEDATA></DATA>
@@ -83,15 +83,15 @@
    <FIELD name="Time" datatype="char" arraysize="*" ucd="meta;time.event.end"/>
    <FIELD name="Msg" datatype="char" arraysize="*" ucd="meta"/>
    <DATA><TABLEDATA>
-    <TR><TD>2025-10-01</TD><TD>01:36:05</TD><TD>FITS header data read in /data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w.align.head</TD></TR>
+    <TR><TD>2026-01-22</TD><TD>16:45:11</TD><TD>FITS header data read in /data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w.align.head</TD></TR>
    </TABLEDATA></DATA>
   </TABLE>
   <RESOURCE ID="Config" name="Config">
    <DESCRIPTION>SWarp configuration</DESCRIPTION>
-   <PARAM name="Command_Line" datatype="char" arraysize="*" ucd="obs.param" value="swarp /data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w_psf.fits -c /data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w.align.swarp"/>
-   <PARAM name="Prefs_Name" datatype="char" arraysize="*" ucd="obs.param;meta.file" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w.align.swarp"/>
-   <PARAM name="ImageOut_Name" datatype="char" arraysize="*" ucd="meta.dataset;meta.file" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w.align.fits"/>
-   <PARAM name="WeightOut_Name" datatype="char" arraysize="*" ucd="meta.dataset;meta.file" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep03_f444w.align.weight.fits"/>
+   <PARAM name="Command_Line" datatype="char" arraysize="*" ucd="obs.param" value="swarp /data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w_psf.fits -c /data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w.align.swarp"/>
+   <PARAM name="Prefs_Name" datatype="char" arraysize="*" ucd="obs.param;meta.file" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w.align.swarp"/>
+   <PARAM name="ImageOut_Name" datatype="char" arraysize="*" ucd="meta.dataset;meta.file" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w.align.fits"/>
+   <PARAM name="WeightOut_Name" datatype="char" arraysize="*" ucd="meta.dataset;meta.file" value="/data6/stone28/nexus/NEXUS/webbpsf/align_f444w/nexus_deep04_f444w.align.weight.fits"/>
    <PARAM name="Header_Only" datatype="boolean" ucd="meta.code;obs.param" value="F"/>
    <PARAM name="Header_Suffix" datatype="char" arraysize="*" ucd="meta.dataset;meta.file" value=".head"/>
    <PARAM name="Weight_Suffix" datatype="char" arraysize="*" ucd="meta.dataset;meta.file" value="_err.fits"/>

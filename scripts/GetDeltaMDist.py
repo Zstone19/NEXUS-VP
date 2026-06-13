@@ -415,11 +415,11 @@ def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5, mstar_init=2
                 mavg_vals_fit.append(mag_centers[k])
                 binned_dm_std.append(std)
 
-                
+
             mavg_vals_fit = np.array(mavg_vals_fit)
             binned_dm_std = np.array(binned_dm_std)
-                
-                
+
+
             #Fit using DIFF    
             # mstar, coeffs0, coeffs1 = fit_for_sigma_curve(mavg_vals_fit, binned_dm_std, mag_centers, mstar=mstar_init, slope_max=max_slope)   
             # func_i = partial(fitfunc, mstar=mstar, alpha=coeffs0[0], beta=coeffs0[1])     
@@ -435,8 +435,8 @@ def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5, mstar_init=2
 
             outlier_mask = np.abs(dm_use) > 3*dm_std
             # sort_ind = np.argsort(mag_avg)
-            
-            
+
+
             # plt.scatter(mag_avg[~outlier_mask], dm_use[~outlier_mask], s=1, color='k', alpha=0.1)
             # plt.scatter(mag_avg[outlier_mask], dm_use[outlier_mask], s=1, color='r', alpha=0.1)
             # plt.scatter(mavg_vals_fit, binned_dm_std, s=15, color='g')
@@ -639,7 +639,7 @@ def unbias_dm(dat_in, suffix='', nmin=50, max_slope=1e-3, dmag=0.5, mstar_init=2
 
 if __name__ == '__main__':
     names = ['wide', 'deep']
-    epochs = ['01', '02']
+    epochs = ['01', '03']
     name_prefix = '{}{}_{}{}'.format(names[0], epochs[0], names[1], epochs[1])
     
     #For wide01-deep01, used mstar_init=24.5

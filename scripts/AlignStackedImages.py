@@ -77,7 +77,7 @@ def make_swarp_config(fname_swarp_default,
 
 bands = ['f200w', 'f444w']
 names = ['wide', 'deep']
-epochs = ['01', '02']
+epochs = ['01', '03']
 
 output_dir = '/data6/stone28/nexus/NEXUS/stacked_cropped_{}{}_{}{}/'.format(names[0], epochs[0], names[1], epochs[1])
 indir_stack = '/data4/jwst/nexus/reduced_data/SEXtractor/detection_maps/'

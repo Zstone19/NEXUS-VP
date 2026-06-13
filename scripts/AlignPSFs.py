@@ -14,7 +14,7 @@ size = (1201,1201)
 bands = ['F200W', 'F444W']
 
 names = ['deep']
-epochs = ['03']
+epochs = ['04']
 
 
 for name, epoch in zip(names, epochs):
